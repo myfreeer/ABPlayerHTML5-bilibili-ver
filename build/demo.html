@@ -5,6 +5,7 @@
 		<meta http-equiv="X-UA-Compatible" value="IE=9">
 		<link rel="stylesheet" href="css/base.css?1" />
 		<title>New Interface Test for ABPlayer</title>
+		<script src="js/CommentCoreLibrary.min.js"></script>
 		<script src="js/ABPMobile.js"></script>
 		<script src="js/ABPLibxml.js"></script>
 		<script src="js/ABPlayer.js"></script>
@@ -13,12 +14,12 @@
 				var inst = ABP.create(document.getElementById("player1"), {
 					src: {
 						playlist: [{
-							video: document.getElementById("video-1")/*,
-							comments: "comment-science.xml"*/
+							video: document.getElementById("video-1"),
+							comments: "comment-science.xml"
 						}]
 					},
-					width: 800,
-					height: 600,
+					width: 980,
+					height: 588,
 					mobile: isMobile()
 				});
 				window.abpinst = inst;
@@ -32,7 +33,5 @@
 				<p>Your browser does not support html5 video!</p>
 			</video>
 		</div>
-		<div id="toBeInjected"></div>
-		<p>Supports mobile. Swipe right to play, left to pause. Up to increase volume and down to decrease volume. Mobile interface auto-enabled on mobile devices.</p>
 	</body>
 </html>

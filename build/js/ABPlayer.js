@@ -41,6 +41,7 @@ var ABP = {
 		this.tooltipData = data;
 		this.dispatchEvent(new Event("updatetooltip"));
 	};
+
 	var formatInt = function(source, length) {
 		var strTemp = "";
 		for (var i = 1; i <= length - (source + "").length; i++) {
@@ -48,8 +49,29 @@ var ABP = {
 		}
 		return strTemp + source;
 	}
+
+	var formatTime = function(source, length) {
+		var strTemp = "";
+		for (var i = 1; i <= length - (source + "").length; i++) {
+			strTemp += "0";
+		}
+		return strTemp + source;
+	}
+
 	var formatTime = function(time) {
 		return formatInt(parseInt(time / 60), 2) + ':' + formatInt(parseInt(time % 60), 2);
+	}
+
+	var convertTime = function(formattedTime) {
+		var timeParts = formattedTime.split(":"),
+			total = 0;
+		for (var i = 0; i < timeParts.length; i++) {
+			total *= 60;
+			var value = parseInt(timeParts[i]);
+			if (isNaN(value) || value < 0) return false;
+			total += value;
+		}
+		return total;
 	}
 	var hoverTooltip = function(elem, follow) {
 		if (!elem) return;
@@ -294,7 +316,9 @@ var ABP = {
 			barHitArea: null,
 			barVolume: null,
 			barVolumeHitArea: null,
+			controlBar: null,
 			timeLabel: null,
+			timeJump: null,
 			divComment: null,
 			btnFull: null,
 			btnDm: null,
@@ -352,8 +376,7 @@ var ABP = {
 		ABPInst.swapVideo = function(video) {
 			video.addEventListener("timeupdate", function() {
 				if (!dragging) {
-					ABPInst.barTime.style.width = ((video.currentTime / video.duration) * 100) + "%";
-					ABPInst.timeLabel.innerHTML = formatTime(video.currentTime) + " / " + formatTime(video.duration);
+					updateTime(video.currentTime);
 				}
 			});
 			video.addEventListener("ended", function() {
@@ -498,13 +521,18 @@ var ABP = {
 		ABPInst.btnFull.tooltip("网页全屏");
 		hoverTooltip(ABPInst.btnFull);
 		/** Bind the TextField **/
-		/*var txtf = playerUnit.getElementsByClassName("ABP-Text");
+		var txtf = playerUnit.getElementsByClassName("ABP-Text");
 		if(txtf.length > 0){
 			ABPInst.divTextField = txtf[0];
 			var txti = txtf[0].getElementsByTagName("input");
 			if(txti.length > 0)
 				ABPInst.txtText = txti[0];
-		}*/
+		}
+		// Controls
+		var controls = playerUnit.getElementsByClassName("ABP-Control");
+		if (controls.length > 0) {
+			ABPInst.controlBar = controls[0];
+		}
 		/** Bind the Comment Disable button **/
 		var cmbtn = playerUnit.getElementsByClassName("ABP-CommentShow");
 		if (cmbtn.length <= 0) return;
@@ -532,11 +560,6 @@ var ABP = {
 		}
 		/** Bind mobile **/
 		if (mobile) {
-			// Controls
-			var controls = playerUnit.getElementsByClassName("ABP-Control");
-			if (controls.length > 0) {
-				ABPInst.controlBar = controls[0];
-			}
 			var timer = -1;
 			var hideBar = function() {
 				ABPInst.controlBar.style.display = "none";
@@ -642,6 +665,30 @@ var ABP = {
 					this.tooltip("洗脑循环 off");
 				}
 			});
+			ABPInst.timeLabel.addEventListener("click", function() {
+				ABPInst.timeJump = _("input", {
+					"className": "time-jump"
+				});
+				ABPInst.timeJump.value = formatTime(ABPInst.video.currentTime);
+				ABPInst.controlBar.appendChild(ABPInst.timeJump);
+				ABPInst.timeJump.addEventListener("blur", function() {
+					if (ABPInst.timeJump) ABPInst.timeJump.parentNode.removeChild(ABPInst.timeJump);
+					ABPInst.timeJump = null;
+				});
+				ABPInst.timeJump.addEventListener("keydown", function(e) {
+					if (e.keyCode == 13) {
+						var time = convertTime(ABPInst.timeJump.value);
+						if (time && time <= ABPInst.video.duration) {
+							ABPInst.video.currentTime = time;
+						}
+						ABPInst.timeJump.parentNode.removeChild(ABPInst.timeJump);
+					} else if ((e.keyCode < 48 || e.keyCode > 58) && e.keyCode != 8 && e.keyCode != 37 && e.keyCode != 39 && e.keyCode != 46) {
+						e.preventDefault();
+					}
+				});
+				ABPInst.timeJump.focus();
+				ABPInst.timeJump.select();
+			});
 			ABPInst.barTime.style.width = "0%";
 			var dragging = false;
 			ABPInst.barHitArea.addEventListener("mousedown", function(e) {
@@ -659,14 +706,17 @@ var ABP = {
 				}
 				dragging = false;
 			});
+			var updateTime = function(time) {
+				ABPInst.barTime.style.width = (time/video.duration * 100) + "%";
+				ABPInst.timeLabel.innerHTML = formatTime(time) + " / " + formatTime(video.duration);
+			}
 			document.addEventListener("mousemove", function(e) {
 				var newTime = ((e.x - ABPInst.barHitArea.getBoundingClientRect().left) / ABPInst.barHitArea.offsetWidth) * ABPInst.video.duration;
 				if (newTime < 0) newTime = 0;
 				if (newTime > ABPInst.video.duration) newTime = ABPInst.video.duration;
 				ABPInst.barHitArea.tooltip(formatTime(newTime));
 				if (dragging) {
-					ABPInst.barTime.style.width = ((e.x - ABPInst.barHitArea.getBoundingClientRect().left) * 100 / ABPInst.barHitArea.offsetWidth) + "%";
-					ABPInst.timeLabel.innerHTML = formatTime(newTime) + " / " + formatTime(video.duration);
+					updateTime(newTime);
 				}
 			});
 			hoverTooltip(ABPInst.barHitArea, true);
@@ -675,20 +725,24 @@ var ABP = {
 				draggingVolume = true;
 			});
 			ABPInst.barVolume.style.width = (ABPInst.video.volume * 100) + "%";
+			var updateVolume = function(volume){
+				ABPInst.barVolume.style.width = (volume * 100) + "%";
+				ABPInst.video.muted = false;
+				ABPInst.btnVolume.className = "button ABP-Volume icon-volume-";
+				if (volume < .10) ABPInst.btnVolume.className += "mute";
+				else if (volume < .33) ABPInst.btnVolume.className += "low";
+				else if (volume < .67) ABPInst.btnVolume.className += "medium";
+				else ABPInst.btnVolume.className += "high";
+				ABPInst.btnVolume.tooltip("静音");
+				ABPInst.barVolumeHitArea.tooltip(parseInt(volume * 100) + "%");
+			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingVolume) {
 					var newVolume = (e.x - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
 					if (newVolume < 0) newVolume = 0;
 					if (newVolume > 1) newVolume = 1;
 					ABPInst.video.volume = newVolume;
-					ABPInst.barVolume.style.width = (newVolume * 100) + "%";
-					ABPInst.video.muted = false;
-					ABPInst.btnVolume.className = "button ABP-Volume icon-volume-";
-					if (ABPInst.video.volume < .10) ABPInst.btnVolume.className += "mute";
-					else if (ABPInst.video.volume < .33) ABPInst.btnVolume.className += "low";
-					else if (ABPInst.video.volume < .67) ABPInst.btnVolume.className += "medium";
-					else ABPInst.btnVolume.className += "high";
-					ABPInst.btnVolume.tooltip("静音");
+					updateVolume(ABPInst.video.volume);
 				}
 				draggingVolume = false;
 			});
@@ -696,17 +750,11 @@ var ABP = {
 				var newVolume = (e.x - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
 				if (newVolume < 0) newVolume = 0;
 				if (newVolume > 1) newVolume = 1;
-				ABPInst.barVolumeHitArea.tooltip(parseInt(newVolume * 100) + "%");
 				if (draggingVolume) {
 					ABPInst.video.volume = newVolume;
-					ABPInst.barVolume.style.width = (newVolume * 100) + "%";
-					ABPInst.video.muted = false;
-					ABPInst.btnVolume.className = "button ABP-Volume icon-volume-";
-					if (ABPInst.video.volume < .10) ABPInst.btnVolume.className += "mute";
-					else if (ABPInst.video.volume < .33) ABPInst.btnVolume.className += "low";
-					else if (ABPInst.video.volume < .67) ABPInst.btnVolume.className += "medium";
-					else ABPInst.btnVolume.className += "high";
-					ABPInst.btnVolume.tooltip("静音");
+					updateVolume(ABPInst.video.volume);
+				} else {
+					ABPInst.barVolumeHitArea.tooltip(parseInt(newVolume * 100) + "%");
 				}
 			});
 			hoverTooltip(ABPInst.barVolumeHitArea, true);
@@ -722,9 +770,41 @@ var ABP = {
 				}
 			});
 			playerUnit.addEventListener("keydown", function(e) {
-				if (e && e.keyCode == 32 && document.activeElement !== ABPInst.txtText) {
-					ABPInst.btnPlay.click();
+				if (e && document.activeElement !== ABPInst.txtText && document.activeElement !== ABPInst.timeJump) {
 					e.preventDefault();
+					switch(e.keyCode) {
+						case 32:
+							ABPInst.btnPlay.click();
+							break;
+						case 37:
+							var newTime = ABPInst.video.currentTime -= 5;
+							ABPInst.cmManager.clear();
+							if (newTime < 0) newTime = 0;
+							ABPInst.video.currentTime = newTime;
+							if (ABPInst.video.paused) ABPInst.btnPlay.click();
+							updateTime(video.currentTime);
+							break;
+						case 39:
+							var newTime = ABPInst.video.currentTime += 5;
+							ABPInst.cmManager.clear();
+							if (newTime > ABPInst.video.duration) newTime = ABPInst.video.duration;
+							ABPInst.video.currentTime = newTime;
+							if (ABPInst.video.paused) ABPInst.btnPlay.click();
+							updateTime(video.currentTime);
+							break;
+						case 38:
+							var newVolume = ABPInst.video.volume + .1;
+							if (newVolume > 1) newVolume = 1;
+							ABPInst.video.volume = newVolume
+							updateVolume(ABPInst.video.volume);
+							break;
+						case 40:
+							var newVolume = ABPInst.video.volume - .1;
+							if (newVolume < 0) newVolume = 0;
+							ABPInst.video.volume = newVolume;
+							updateVolume(ABPInst.video.volume);
+							break;
+					}
 				}
 			});
 			playerUnit.addEventListener("touchmove", function(e) {
@@ -768,9 +848,11 @@ var ABP = {
 				}
 			});
 			playerUnit.addEventListener("mouseup", function() {
-				var oSY = window.scrollY;
-				ABPInst.videoDiv.focus();
-				window.scrollTo(window.scrollX, oSY);
+				if (document.activeElement != ABPInst.txtText && document.activeElement != ABPInst.timeJump) {
+					var oSY = window.scrollY;
+					ABPInst.videoDiv.focus();
+					window.scrollTo(window.scrollX, oSY);
+				}
 			});
 		}
 		/** Bind command interface **/
