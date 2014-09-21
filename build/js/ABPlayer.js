@@ -680,6 +680,7 @@ var ABP = {
 						var time = convertTime(ABPInst.timeJump.value);
 						if (time && time <= ABPInst.video.duration) {
 							ABPInst.video.currentTime = time;
+							if (ABPInst.video.paused) ABPInst.btnPlay.click();
 						}
 						ABPInst.timeJump.parentNode.removeChild(ABPInst.timeJump);
 					} else if ((e.keyCode < 48 || e.keyCode > 58) && e.keyCode != 8 && e.keyCode != 37 && e.keyCode != 39 && e.keyCode != 46) {
