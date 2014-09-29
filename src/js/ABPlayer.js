@@ -213,21 +213,36 @@ var ABP = {
 			playlist.push(params.src);
 		}
 		container.appendChild(_("div", {
+			"className": "ABP-Player"
+		}, [_("div", {
 			"className": "ABP-Video",
 			"tabindex": "10"
 		}, [_("div", {
 				"className": "ABP-Container"
 			}),
 			playlist[0]
-		]));
-		/*container.appendChild(_("div", {
-					"className":"ABP-Text",
-			},[
-				_("input", {
-					"type":"text"
+		]), _("div", {
+			"className": "ABP-Text",
+		}, [
+			_("div", {
+				"className": "ABP-CommentStyle"
+			}, [
+				_("div", {
+					"className": "button ABP-Comment-Font icon-font-style"
+				}),
+				_("div", {
+					"className": "button ABP-Comment-Color icon-color-mode"
 				})
-		]));*/
-		container.appendChild(_("div", {
+			]),
+			_("input", {
+				"type": "text"
+			}),
+			_("div", {
+				"className": "ABP-Comment-Send"
+			}, [
+				_("text", "发送")
+			])
+		]), _("div", {
 			"className": "ABP-Control"
 		}, [
 			_("div", {
@@ -273,6 +288,21 @@ var ABP = {
 			_("div", {
 				"className": "button ABP-FullScreen icon-screen-full"
 			})
+		])]));
+		container.appendChild(_("div", {
+			"className": "ABP-Comment-List"
+		}, [
+			_("div", {
+				"className": "ABP-Comment-List-Title"
+			}, [_("div", {
+				"className": "time"
+			}, [_("text", "时间")]), _("div", {
+				"className": "content"
+			}, [_("text", "评论")]), _("div", {
+				"className": "send"
+			}, [_("text", " 发送日期")])]), _("ul", {
+				"className": "ABP-Comment-List-Container"
+			})
 		]));
 		var bind = ABP.bind(container, params.mobile);
 		if (playlist.length > 0) {
@@ -316,6 +346,9 @@ var ABP = {
 			barHitArea: null,
 			barVolume: null,
 			barVolumeHitArea: null,
+			btnFont: null,
+			btnColor: null,
+			btnSend: null,
 			controlBar: null,
 			timeLabel: null,
 			timeJump: null,
@@ -520,14 +553,32 @@ var ABP = {
 		ABPInst.btnFull = fbtn[0];
 		ABPInst.btnFull.tooltip("网页全屏");
 		hoverTooltip(ABPInst.btnFull);
+		/** Bind the Comment Font button **/
+		var cfbtn = playerUnit.getElementsByClassName("ABP-Comment-Font");
+		if (cfbtn.length <= 0) return;
+		ABPInst.btnFont = cfbtn[0];
+		ABPInst.btnFont.tooltip("弹幕样式");
+		hoverTooltip(ABPInst.btnFont);
+		/** Bind the Comment Color button **/
+		var ccbtn = playerUnit.getElementsByClassName("ABP-Comment-Color");
+		if (ccbtn.length <= 0) return;
+		ABPInst.btnColor = ccbtn[0];
+		ABPInst.btnColor.tooltip("弹幕颜色");
+		hoverTooltip(ABPInst.btnColor);
 		/** Bind the TextField **/
 		var txtf = playerUnit.getElementsByClassName("ABP-Text");
-		if(txtf.length > 0){
+		if (txtf.length > 0) {
 			ABPInst.divTextField = txtf[0];
 			var txti = txtf[0].getElementsByTagName("input");
-			if(txti.length > 0)
+			if (txti.length > 0)
 				ABPInst.txtText = txti[0];
 		}
+		/** Bind the Send Comment button **/
+		var csbtn = playerUnit.getElementsByClassName("ABP-Comment-Send");
+		if (csbtn.length <= 0) return;
+		ABPInst.btnSend = csbtn[0];
+		ABPInst.btnSend.tooltip("毁灭地喷射白光!da!");
+		hoverTooltip(ABPInst.btnSend);
 		// Controls
 		var controls = playerUnit.getElementsByClassName("ABP-Control");
 		if (controls.length > 0) {
@@ -708,7 +759,7 @@ var ABP = {
 				dragging = false;
 			});
 			var updateTime = function(time) {
-				ABPInst.barTime.style.width = (time/video.duration * 100) + "%";
+				ABPInst.barTime.style.width = (time / video.duration * 100) + "%";
 				ABPInst.timeLabel.innerHTML = formatTime(time) + " / " + formatTime(video.duration);
 			}
 			document.addEventListener("mousemove", function(e) {
@@ -726,7 +777,7 @@ var ABP = {
 				draggingVolume = true;
 			});
 			ABPInst.barVolume.style.width = (ABPInst.video.volume * 100) + "%";
-			var updateVolume = function(volume){
+			var updateVolume = function(volume) {
 				ABPInst.barVolume.style.width = (volume * 100) + "%";
 				ABPInst.video.muted = false;
 				ABPInst.btnVolume.className = "button ABP-Volume icon-volume-";
@@ -773,7 +824,7 @@ var ABP = {
 			playerUnit.addEventListener("keydown", function(e) {
 				if (e && document.activeElement !== ABPInst.txtText && document.activeElement !== ABPInst.timeJump) {
 					e.preventDefault();
-					switch(e.keyCode) {
+					switch (e.keyCode) {
 						case 32:
 							ABPInst.btnPlay.click();
 							break;
