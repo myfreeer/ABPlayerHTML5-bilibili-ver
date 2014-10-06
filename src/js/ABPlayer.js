@@ -42,6 +42,36 @@ var ABP = {
 		this.dispatchEvent(new Event("updatetooltip"));
 	};
 
+	if (typeof HTMLElement.prototype.requestFullScreen == "undefined") {
+		HTMLElement.prototype.requestFullScreen = function() {
+			if (this.webkitRequestFullscreen) {
+				this.webkitRequestFullscreen();
+			} else if (this.mozRequestFullScreen) {
+				this.mozRequestFullScreen();
+			} else if (this.msRequestFullscreen) {
+				this.msRequestFullscreen();
+			}
+		}
+	}
+
+	if (typeof document.isFullScreen == "undefined") {
+		document.isFullScreen = function() {
+			return document.webkitIsFullScreen || document.mozFullScreen || document.msFullscreenEnabled;
+		}
+	}
+
+	if (typeof document.exitFullscreen == "undefined") {
+		document.exitFullscreen = function() {
+			if (document.webkitExitFullscreen) {
+				document.webkitExitFullscreen();
+			} else if (document.mozCancelFullScreen) {
+				document.mozCancelFullScreen();
+			} else if (msExitFullscreen) {
+				msExitFullscreen()
+			}
+		}
+	}
+
 	var formatInt = function(source, length) {
 		var strTemp = "";
 		for (var i = 1; i <= length - (source + "").length; i++) {
@@ -73,7 +103,7 @@ var ABP = {
 		}
 		return total;
 	}
-	var hoverTooltip = function(elem, follow) {
+	var hoverTooltip = function(elem, follow, yoffset) {
 		if (!elem) return;
 		elem.addEventListener("mousemove", function(e) {
 			var tooltip = $("ABP-Tooltip"),
@@ -93,13 +123,15 @@ var ABP = {
 				tooltip.style["left"] = elemLeft + elemWidth / 2 - tooltip.clientWidth / 2 + "px";
 			}
 			if (follow) {
-				tooltip.style["top"] = elemTop - tooltip.clientHeight - 10 + "px";
 				tooltip.style["left"] = elemLeft - tooltip.clientWidth / 2 + "px";
+			}
+			if (yoffset) {
+				tooltip.style["top"] = elemTop - tooltip.clientHeight + 2 + yoffset + "px";
 			}
 		});
 		elem.addEventListener("mouseout", function() {
 			var tooltip = $("ABP-Tooltip");
-			if (tooltip.parentNode) {
+			if (tooltip && tooltip.parentNode) {
 				tooltip.parentNode.removeChild(tooltip);
 			}
 		});
@@ -235,7 +267,9 @@ var ABP = {
 				})
 			]),
 			_("input", {
-				"type": "text"
+				"type": "text",
+				"placeholder": "哔哩哔哩助手 HTML5 播放器即将支持弹幕发送功能，敬请期待",
+				"disabled": "disabled"
 			}),
 			_("div", {
 				"className": "ABP-Comment-Send"
@@ -280,14 +314,37 @@ var ABP = {
 				]),
 			]),
 			_("div", {
+				"className": "button-group ABP-CommentGroup"
+			}, [_("div", {
 				"className": "button ABP-CommentShow icon-comment on"
-			}),
+			}), _("div", {
+				"className": "ABP-CommentOption"
+			}, [_("p", {
+				"className": "label"
+			}, [_("text", "弹幕不透明度")]), _("div", {
+				"className": "opacity-bar"
+			}, [
+				_("div", {
+					"className": "bar"
+				}, [
+					_("div", {
+						"className": "load"
+					})
+				]),
+			])])]),
 			_("div", {
 				"className": "button ABP-Loop icon-loop"
 			}),
 			_("div", {
+				"className": "button ABP-WideScreen icon-tv"
+			}),
+			_("div", {
+				"className": "button-group ABP-FullScreenGroup"
+			}, [_("div", {
 				"className": "button ABP-FullScreen icon-screen-full"
-			})
+			}), _("div", {
+				"className": "button ABP-Web-FullScreen icon-screen"
+			})])
 		])]));
 		container.appendChild(_("div", {
 			"className": "ABP-Comment-List"
@@ -343,9 +400,11 @@ var ABP = {
 			btnPlay: null,
 			barTime: null,
 			barLoad: null,
-			barHitArea: null,
+			barTimeHitArea: null,
 			barVolume: null,
 			barVolumeHitArea: null,
+			barOpacity: null,
+			barOpacityHitArea: null,
 			btnFont: null,
 			btnColor: null,
 			btnSend: null,
@@ -353,7 +412,9 @@ var ABP = {
 			timeLabel: null,
 			timeJump: null,
 			divComment: null,
+			btnWide: null,
 			btnFull: null,
+			btnWebFull: null,
 			btnDm: null,
 			btnLoop: null,
 			videoDiv: null,
@@ -528,7 +589,7 @@ var ABP = {
 		var pbar = playerUnit.getElementsByClassName("progress-bar");
 		if (pbar.length <= 0) return;
 		var pbars = pbar[0].getElementsByClassName("bar");
-		ABPInst.barHitArea = pbars[0];
+		ABPInst.barTimeHitArea = pbars[0];
 		ABPInst.barLoad = pbars[0].getElementsByClassName("load")[0];
 		ABPInst.barTime = pbars[0].getElementsByClassName("dark")[0];
 		/** Bind the Time Label **/
@@ -547,12 +608,30 @@ var ABP = {
 		var vbars = vbar[0].getElementsByClassName("bar");
 		ABPInst.barVolumeHitArea = vbars[0];
 		ABPInst.barVolume = vbars[0].getElementsByClassName("load")[0];
+		/** Bind the Opacity Bar **/
+		var obar = playerUnit.getElementsByClassName("opacity-bar");
+		if (obar.length <= 0) return;
+		var obar = obar[0].getElementsByClassName("bar");
+		ABPInst.barOpacityHitArea = obar[0];
+		ABPInst.barOpacity = obar[0].getElementsByClassName("load")[0];
 		/** Bind the FullScreen button **/
 		var fbtn = playerUnit.getElementsByClassName("ABP-FullScreen");
 		if (fbtn.length <= 0) return;
 		ABPInst.btnFull = fbtn[0];
-		ABPInst.btnFull.tooltip("网页全屏");
+		ABPInst.btnFull.tooltip("浏览器全屏");
 		hoverTooltip(ABPInst.btnFull);
+		/** Bind the WebFullScreen button **/
+		var wfbtn = playerUnit.getElementsByClassName("ABP-Web-FullScreen");
+		if (wfbtn.length <= 0) return;
+		ABPInst.btnWebFull = wfbtn[0];
+		ABPInst.btnWebFull.tooltip("网页全屏");
+		hoverTooltip(ABPInst.btnWebFull);
+		/** Bind the WideScreen button **/
+		var wsbtn = playerUnit.getElementsByClassName("ABP-WideScreen");
+		if (wsbtn.length <= 0) return;
+		ABPInst.btnWide = wsbtn[0];
+		ABPInst.btnWide.tooltip("宽屏模式");
+		hoverTooltip(ABPInst.btnWide);
 		/** Bind the Comment Font button **/
 		var cfbtn = playerUnit.getElementsByClassName("ABP-Comment-Font");
 		if (cfbtn.length <= 0) return;
@@ -668,18 +747,71 @@ var ABP = {
 					this.tooltip("静音");
 				}
 			});
+			ABPInst.btnWebFull.addEventListener("click", function() {
+				ABPInst.state.fullscreen = hasClass(playerUnit, "ABP-FullScreen");
+				addClass(playerUnit, "ABP-FullScreen");
+				ABPInst.btnFull.className = "button ABP-FullScreen icon-screen-normal";
+				ABPInst.btnFull.tooltip("退出网页全屏");
+				ABPInst.state.fullscreen = true;
+				if (ABPInst.cmManager)
+					ABPInst.cmManager.setBounds();
+				if (!ABPInst.state.allowRescale) return;
+				if (ABPInst.state.fullscreen) {
+					if (ABPInst.defaults.w > 0) {
+						ABPInst.cmManager.def.scrollScale = playerUnit.offsetWidth / ABPInst.defaults.w;
+					}
+				} else {
+					ABPInst.cmManager.def.scrollScale = 1;
+				}
+			});
+			var fullscreenChangeHandler = function() {
+				if (!document.isFullScreen() && hasClass(playerUnit, "ABP-FullScreen")) {
+					removeClass(playerUnit, "ABP-FullScreen");
+					this.className = "button ABP-FullScreen icon-screen-full";
+					this.tooltip("浏览器全屏");
+				}
+			}
+			document.addEventListener("fullscreenchange", fullscreenChangeHandler, false);
+			document.addEventListener("webkitfullscreenchange", fullscreenChangeHandler, false);
+			document.addEventListener("mozfullscreenchange", fullscreenChangeHandler, false);
+			document.addEventListener("MSFullscreenChange", fullscreenChangeHandler, false);
 			ABPInst.btnFull.addEventListener("click", function() {
 				ABPInst.state.fullscreen = hasClass(playerUnit, "ABP-FullScreen");
 				if (!ABPInst.state.fullscreen) {
 					addClass(playerUnit, "ABP-FullScreen");
 					this.className = "button ABP-FullScreen icon-screen-normal";
-					this.tooltip("退出网页全屏");
+					this.tooltip("退出全屏");
+					playerUnit.requestFullScreen();
 				} else {
 					removeClass(playerUnit, "ABP-FullScreen");
 					this.className = "button ABP-FullScreen icon-screen-full";
-					this.tooltip("网页全屏");
+					this.tooltip("浏览器全屏");
+					document.exitFullscreen();
 				}
 				ABPInst.state.fullscreen = !ABPInst.state.fullscreen;
+				if (ABPInst.cmManager)
+					ABPInst.cmManager.setBounds();
+				if (!ABPInst.state.allowRescale) return;
+				if (ABPInst.state.fullscreen) {
+					if (ABPInst.defaults.w > 0) {
+						ABPInst.cmManager.def.scrollScale = playerUnit.offsetWidth / ABPInst.defaults.w;
+					}
+				} else {
+					ABPInst.cmManager.def.scrollScale = 1;
+				}
+			});
+			ABPInst.btnWide.addEventListener("click", function() {
+				ABPInst.state.widescreen = hasClass(playerUnit, "ABP-WideScreen");
+				if (!ABPInst.state.widescreen) {
+					addClass(playerUnit, "ABP-WideScreen");
+					this.className = "button ABP-WideScreen icon-tv on";
+					this.tooltip("退出宽屏");
+				} else {
+					removeClass(playerUnit, "ABP-WideScreen");
+					this.className = "button ABP-WideScreen icon-tv";
+					this.tooltip("宽屏模式");
+				}
+				ABPInst.state.widescreen = !ABPInst.state.widescreen;
 				if (ABPInst.cmManager)
 					ABPInst.cmManager.setBounds();
 				if (!ABPInst.state.allowRescale) return;
@@ -743,12 +875,12 @@ var ABP = {
 			});
 			ABPInst.barTime.style.width = "0%";
 			var dragging = false;
-			ABPInst.barHitArea.addEventListener("mousedown", function(e) {
+			ABPInst.barTimeHitArea.addEventListener("mousedown", function(e) {
 				dragging = true;
 			});
 			document.addEventListener("mouseup", function(e) {
 				if (dragging) {
-					var newTime = ((e.x - ABPInst.barHitArea.getBoundingClientRect().left) / ABPInst.barHitArea.offsetWidth) * ABPInst.video.duration;
+					var newTime = ((e.x - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
 					if (newTime < 0) newTime = 0;
 					if (Math.abs(newTime - ABPInst.video.currentTime) > 4) {
 						if (ABPInst.cmManager)
@@ -763,15 +895,15 @@ var ABP = {
 				ABPInst.timeLabel.innerHTML = formatTime(time) + " / " + formatTime(video.duration);
 			}
 			document.addEventListener("mousemove", function(e) {
-				var newTime = ((e.x - ABPInst.barHitArea.getBoundingClientRect().left) / ABPInst.barHitArea.offsetWidth) * ABPInst.video.duration;
+				var newTime = ((e.x - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
 				if (newTime < 0) newTime = 0;
 				if (newTime > ABPInst.video.duration) newTime = ABPInst.video.duration;
-				ABPInst.barHitArea.tooltip(formatTime(newTime));
+				ABPInst.barTimeHitArea.tooltip(formatTime(newTime));
 				if (dragging) {
 					updateTime(newTime);
 				}
 			});
-			hoverTooltip(ABPInst.barHitArea, true);
+			hoverTooltip(ABPInst.barTimeHitArea, true, -12);
 			var draggingVolume = false;
 			ABPInst.barVolumeHitArea.addEventListener("mousedown", function(e) {
 				draggingVolume = true;
@@ -809,7 +941,38 @@ var ABP = {
 					ABPInst.barVolumeHitArea.tooltip(parseInt(newVolume * 100) + "%");
 				}
 			});
-			hoverTooltip(ABPInst.barVolumeHitArea, true);
+			hoverTooltip(ABPInst.barVolumeHitArea, true, -12);
+			var draggingOpacity = false;
+			ABPInst.barOpacityHitArea.addEventListener("mousedown", function(e) {
+				draggingOpacity = true;
+			});
+			ABPInst.barOpacity.style.width = (ABPInst.cmManager.def.opacity * 100) + "%";
+			var updateOpacity = function(opacity) {
+				ABPInst.barOpacity.style.width = (opacity * 100) + "%";
+				ABPInst.barOpacityHitArea.tooltip(parseInt(opacity * 100) + "%");
+			}
+			document.addEventListener("mouseup", function(e) {
+				if (draggingOpacity) {
+					var newOpacity = (e.x - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
+					if (newOpacity < 0) newOpacity = 0;
+					if (newOpacity > 1) newOpacity = 1;
+					ABPInst.cmManager.def.opacity = newOpacity;
+					updateOpacity(ABPInst.cmManager.def.opacity);
+				}
+				draggingOpacity = false;
+			});
+			document.addEventListener("mousemove", function(e) {
+				var newOpacity = (e.x - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
+				if (newOpacity < 0) newOpacity = 0;
+				if (newOpacity > 1) newOpacity = 1;
+				if (draggingOpacity) {
+					ABPInst.cmManager.def.opacity = newOpacity;
+					updateOpacity(ABPInst.cmManager.def.opacity);
+				} else {
+					ABPInst.barOpacityHitArea.tooltip(parseInt(newOpacity * 100) + "%");
+				}
+			});
+			hoverTooltip(ABPInst.barOpacityHitArea, true, -6);
 			ABPInst.btnPlay.addEventListener("click", function() {
 				if (ABPInst.video.paused) {
 					ABPInst.video.play();
@@ -835,6 +998,7 @@ var ABP = {
 							ABPInst.video.currentTime = newTime;
 							if (ABPInst.video.paused) ABPInst.btnPlay.click();
 							updateTime(video.currentTime);
+							ABPInst.barTimeHitArea.tooltip(formatTime(video.currentTime));
 							break;
 						case 39:
 							var newTime = ABPInst.video.currentTime += 5;
@@ -843,6 +1007,7 @@ var ABP = {
 							ABPInst.video.currentTime = newTime;
 							if (ABPInst.video.paused) ABPInst.btnPlay.click();
 							updateTime(video.currentTime);
+							ABPInst.barTimeHitArea.tooltip(formatTime(video.currentTime));
 							break;
 						case 38:
 							var newVolume = ABPInst.video.volume + .1;
