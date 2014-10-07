@@ -38,7 +38,7 @@ var ABP = {
 		return elem;
 	};
 
-	function findRow(node) {
+	var findRow = function(node) {
 		var i = 1;
 		while (node = node.previousSibling) {
 			if (node.nodeType === 1) {
@@ -46,6 +46,14 @@ var ABP = {
 			}
 		}
 		return i;
+	}
+
+	var findClosest = function(node, className) {
+		for (; node; node = node.parentNode) {
+			if (hasClass(node.parentNode, className)) {
+				return node;
+			}
+		}
 	}
 
 	HTMLElement.prototype.tooltip = function(data) {
@@ -81,6 +89,10 @@ var ABP = {
 				msExitFullscreen()
 			}
 		}
+	}
+
+	function htmlEscape(text) {
+		return text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 	}
 
 	var formatInt = function(source, length) {
@@ -142,7 +154,7 @@ var ABP = {
 				elemWidth = elem.clientWidth,
 				elemHeight = elem.clientHeight,
 				elemOffset = elem.getBoundingClientRect(),
-				unitOffset = elem.parentElement.parentElement.getBoundingClientRect(),
+				unitOffset = findClosest(elem, 'ABP-Unit').getBoundingClientRect(),
 				elemTop = elemOffset.top - unitOffset.top,
 				elemLeft = follow ? e.x - unitOffset.left : elemOffset.left - unitOffset.left;
 			if (tooltip == null) {
@@ -150,7 +162,7 @@ var ABP = {
 					"id": "ABP-Tooltip",
 				}, [_("text", elem.tooltipData)]);
 				tooltip.by = elem;
-				elem.parentElement.parentElement.appendChild(tooltip);
+				findClosest(elem, 'ABP-Unit').appendChild(tooltip);
 				tooltip.style["top"] = elemTop + elemHeight + 2 + "px";
 				tooltip.style["left"] = elemLeft + elemWidth / 2 - tooltip.clientWidth / 2 + "px";
 			}
@@ -169,7 +181,7 @@ var ABP = {
 		});
 		elem.addEventListener("updatetooltip", function(e) {
 			var tooltip = $("ABP-Tooltip");
-			if (tooltip && tooltip.by == e.srcElement) tooltip.innerHTML = elem.tooltipData;
+			if (tooltip && tooltip.by == e.srcElement) tooltip.innerHTML = htmlEscape(elem.tooltipData);
 		});
 	}
 	var addClass = function(elem, className) {
@@ -461,6 +473,7 @@ var ABP = {
 			commentList: null,
 			commentListContainer: null,
 			lastSelectedComment: null,
+			commentScale: 0.9,
 			defaults: {
 				w: 0,
 				h: 0
@@ -515,26 +528,40 @@ var ABP = {
 					var key = keysSorted[i]
 					var comment = ABPInst.commentList[key];
 					if (comment && comment.time) {
-						var commentObj = _("li", {}, [_("span", {
-							"className": "time"
-						}, [_("text", formatTime(comment.time / 1000))]), _("span", {
-							"className": "content"
-						}, [_("text", comment.content)]), _("span", {
-							"className": "date"
-						}, [_("text", formatDate(comment.date, true))])]);
+						var commentObj = _("li", {}),
+							commentObjTime = _("span", {
+								"className": "time"
+							}, [_("text", formatTime(comment.time / 1000))]),
+							commentObjContent = _("span", {
+								"className": "content"
+							}, [_("text", comment.content)]),
+							commentObjDate = _("span", {
+								"className": "date"
+							}, [_("text", formatDate(comment.date, true))]);
+						hoverTooltip(commentObjContent, false, 36);
+						hoverTooltip(commentObjDate, false, 18);
+						commentObjContent.tooltip(comment.content);
+						commentObjDate.tooltip(formatDate(comment.date));
+						commentObj.appendChild(commentObjTime);
+						commentObj.appendChild(commentObjContent);
+						commentObj.appendChild(commentObjDate);
 						commentObj.data = comment;
 						commentObj.addEventListener("click", function(e) {
 							e.preventDefault();
 							if (e.shiftKey) {
+								var selected = ABPInst.commentListContainer.getElementsByClassName("on");
+								var selectedCount = selected.length;
+								for (var i = 0; i < selectedCount; i++) {
+									removeClass(selected[0], "on");
+								}
 								if (ABPInst.lastSelectedComment) {
 									var lastIndex = findRow(ABPInst.lastSelectedComment) - 1,
 										thisIndex = findRow(this) - 1,
 										order = lastIndex > thisIndex ? 1 : -1;
-									console.log(lastIndex,thisIndex,order);
 									for (var i = thisIndex; i != lastIndex; i += order) {
-										console.log(i);
 										addClass(ABPInst.commentListContainer.childNodes[i], "on");
 									}
+									addClass(ABPInst.commentListContainer.childNodes[lastIndex], "on");
 								}
 							} else if (e.metaKey) {
 								if (hasClass(this, "on")) {
@@ -552,6 +579,10 @@ var ABP = {
 								addClass(this, "on");
 								ABPInst.lastSelectedComment = this;
 							}
+						});
+						commentObj.addEventListener("dblclick", function(e) {
+							ABPInst.video.currentTime = this.data.time / 1000;
+							updateTime(video.currentTime);
 						});
 						ABPInst.commentListContainer.appendChild(commentObj);
 					}
@@ -598,6 +629,8 @@ var ABP = {
 			video.isBound = true;
 			var lastPosition = 0;
 			if (ABPInst.cmManager) {
+				ABPInst.cmManager.options.scrollScale = 1.3;
+				ABPInst.cmManager.options.opacity = 0.8;
 				ABPInst.cmManager.addEventListener("load", function() {
 					ABPInst.commentList = {};
 					for (i in ABPInst.cmManager.timeline) {
@@ -613,6 +646,27 @@ var ABP = {
 					}
 					ABPInst.loadCommentList("date", "asc");
 				});
+				ABPInst.cmManager.setBounds = function() {
+					var actualWidth = ABPInst.videoDiv.offsetWidth,
+						actualHeight = ABPInst.videoDiv.offsetHeight,
+						scale = actualHeight / 438 * ABPInst.commentScale;
+					if (playerUnit.offsetHeight <= 300 || playerUnit.offsetWidth <= 700) {
+						addClass(playerUnit, "ABP-Mini");
+					} else {
+						removeClass(playerUnit, "ABP-Mini");
+					}
+					this.width = actualWidth / scale;
+					this.height = 438 / ABPInst.commentScale;
+					this.dispatchEvent("resize");
+					for (var a in this.csa) this.csa[a].setBounds(this.width, this.height);
+					this.stage.style.width = actualWidth / scale + "px";
+					this.stage.style.height = 438 / ABPInst.commentScale + "px";
+					this.stage.style.perspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
+					this.stage.style.webkitPerspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
+					this.stage.style.transform = "scale(" + scale + ")";
+					this.stage.style.webkitTransform = "scale(" + scale + ")";
+				}
+				ABPInst.cmManager.setBounds();
 				ABPInst.cmManager.clear();
 				video.addEventListener("progress", function() {
 					if (lastPosition == video.currentTime) {
@@ -623,7 +677,6 @@ var ABP = {
 				});
 				if (window) {
 					window.addEventListener("resize", function() {
-						//Notify on resize
 						ABPInst.cmManager.setBounds();
 					});
 				}
@@ -636,6 +689,7 @@ var ABP = {
 					ABPInst.cmManager.time(Math.floor(video.currentTime * 1000));
 				});
 				video.addEventListener("play", function() {
+					ABPInst.cmManager.setBounds();
 					ABPInst.cmManager.startTimer();
 					try {
 						var e = this.buffered.end(0);
@@ -918,10 +972,12 @@ var ABP = {
 				if (!ABPInst.state.widescreen) {
 					addClass(playerUnit, "ABP-WideScreen");
 					this.className = "button ABP-WideScreen icon-tv on";
+					playerUnit.dispatchEvent(new CustomEvent("wide"), {status: true});
 					this.tooltip("退出宽屏");
 				} else {
 					removeClass(playerUnit, "ABP-WideScreen");
 					this.className = "button ABP-WideScreen icon-tv";
+					playerUnit.dispatchEvent(new CustomEvent("wide"), {status: false});
 					this.tooltip("宽屏模式");
 				}
 				ABPInst.state.widescreen = !ABPInst.state.widescreen;
