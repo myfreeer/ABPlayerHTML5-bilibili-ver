@@ -162,6 +162,7 @@
   position: absolute;
   font-size: 10px;
   height: 14px;
+  color: #444;
   line-height: 14px;
   background: rgba(255,255,255,.9);
   padding: 2px 4px;
@@ -192,7 +193,7 @@
   top:0;
   bottom:0;
   cursor: pointer;
-  transition: opacity 0.1s ease-in-out, background 0.1s ease-in-out;
+  transition: opacity 0.1s linear, background 0.1s linear, color 0.1s linear;
 }
 
 .ABP-Unit .ABP-FullScreenGroup .ABP-Web-FullScreen {
@@ -560,7 +561,7 @@
   width: 155px;
 }
 
-.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .send {
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .date {
   left: 200px;
   width: 99px;
 }
@@ -571,6 +572,70 @@
   width: 100%;
   height: calc(100% - 25px);
   list-style-type: none;
+  font-size: 12px;
+  line-height: 24px;
+  color: #666;
+  overflow-y: scroll;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  margin: 0;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+  min-height: 20px;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li {
+  height: 24px;
+  overflow: hidden;
+  cursor: default;
+  transition: background 0.1s linear;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li.on {
+  background: #99c0ff;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li:hover {
+  background: #cbe0ff;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li * {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  height: 24px;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .time {
+  text-align: center;
+  width: 50px;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .content {
+  width: 155px;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .date {
+  width: 84px;
 }
 
 /** Aliases for Chinese named fonts because they don't work on *nix **/
