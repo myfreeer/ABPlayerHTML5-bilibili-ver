@@ -314,8 +314,7 @@ var ABP = {
 				})
 			]),
 			_("input", {
-				"type": "text",
-				"placeholder": "哔哩哔哩助手 HTML5 播放器即将支持弹幕发送功能，敬请期待",
+				"value": "哔哩哔哩助手 HTML5 播放器即将支持弹幕发送功能，敬请期待",
 				"disabled": "disabled"
 			}),
 			_("div", {
@@ -404,9 +403,11 @@ var ABP = {
 				"className": "content"
 			}, [_("text", "评论")]), _("div", {
 				"className": "date"
-			}, [_("text", " 发送日期")])]), _("ul", {
+			}, [_("text", " 发送日期")])]), _("div", {
 				"className": "ABP-Comment-List-Container"
-			})
+			}, [_("ul", {
+				"className": "ABP-Comment-List-Container-Inner"
+			})])
 		]));
 		var bind = ABP.bind(container, params.mobile);
 		if (playlist.length > 0) {
@@ -444,6 +445,7 @@ var ABP = {
 
 	ABP.bind = function(playerUnit, mobile, state) {
 		var ABPInst = {
+			playerUnit: playerUnit,
 			btnPlay: null,
 			barTime: null,
 			barLoad: null,
@@ -523,7 +525,7 @@ var ABP = {
 					if (ABPInst.commentList[a][sort] > ABPInst.commentList[b][sort]) return -order;
 					return 0;
 				});
-				ABPInst.commentListContainer.innerHTML = "";
+				ABPInst.commentObjArray = [];
 				for (i in keysSorted) {
 					var key = keysSorted[i]
 					var comment = ABPInst.commentList[key];
@@ -546,47 +548,34 @@ var ABP = {
 						commentObj.appendChild(commentObjContent);
 						commentObj.appendChild(commentObjDate);
 						commentObj.data = comment;
-						commentObj.addEventListener("click", function(e) {
-							e.preventDefault();
-							if (e.shiftKey) {
-								var selected = ABPInst.commentListContainer.getElementsByClassName("on");
-								var selectedCount = selected.length;
-								for (var i = 0; i < selectedCount; i++) {
-									removeClass(selected[0], "on");
-								}
-								if (ABPInst.lastSelectedComment) {
-									var lastIndex = findRow(ABPInst.lastSelectedComment) - 1,
-										thisIndex = findRow(this) - 1,
-										order = lastIndex > thisIndex ? 1 : -1;
-									for (var i = thisIndex; i != lastIndex; i += order) {
-										addClass(ABPInst.commentListContainer.childNodes[i], "on");
-									}
-									addClass(ABPInst.commentListContainer.childNodes[lastIndex], "on");
-								}
-							} else if (e.metaKey) {
-								if (hasClass(this, "on")) {
-									removeClass(this, "on");
-								} else {
-									addClass(this, "on");
-								}
-								ABPInst.lastSelectedComment = this;
-							} else {
-								var selected = ABPInst.commentListContainer.getElementsByClassName("on");
-								var selectedCount = selected.length;
-								for (var i = 0; i < selectedCount; i++) {
-									removeClass(selected[0], "on");
-								}
-								addClass(this, "on");
-								ABPInst.lastSelectedComment = this;
-							}
-						});
 						commentObj.addEventListener("dblclick", function(e) {
 							ABPInst.video.currentTime = this.data.time / 1000;
 							updateTime(video.currentTime);
 						});
-						ABPInst.commentListContainer.appendChild(commentObj);
+						ABPInst.commentObjArray.push(commentObj);
 					}
 				}
+				ABPInst.commentListContainer.style.height = ABPInst.commentObjArray.length * 24 + "px";
+				ABPInst.renderCommentList();
+			},
+			renderCommentList: function() {
+				var offset = ABPInst.commentListContainer.parentElement.scrollTop,
+					firstIndex = parseInt(offset / 24);
+				ABPInst.commentListContainer.innerHTML = "";
+				for (var i = firstIndex; i <= firstIndex + 40; i++) {
+					if (typeof ABPInst.commentObjArray[i] !== "undefined") {
+						if (i == firstIndex && i > 0) {
+							var commentObj = ABPInst.commentObjArray[i].cloneNode(true);
+							commentObj.style.paddingTop = 24 * firstIndex + "px";
+						} else {
+							var commentObj = ABPInst.commentObjArray[i];
+						}
+						ABPInst.commentListContainer.appendChild(commentObj);
+					} else {
+						break;
+					}
+				}
+				ABPInst.commentListContainer.parentElement.scrollTop = offset;
 			},
 			swapVideo: null
 		};
@@ -645,6 +634,7 @@ var ABP = {
 						}
 					}
 					ABPInst.loadCommentList("date", "asc");
+					ABPInst.commentListContainer.parentElement.addEventListener("scroll", ABPInst.renderCommentList);
 				});
 				ABPInst.cmManager.setBounds = function() {
 					var actualWidth = ABPInst.videoDiv.offsetWidth,
@@ -814,7 +804,7 @@ var ABP = {
 				ABPInst.txtText = txti[0];
 		}
 		/** Bind the Send Comment List Container **/
-		var clc = playerUnit.getElementsByClassName("ABP-Comment-List-Container");
+		var clc = playerUnit.getElementsByClassName("ABP-Comment-List-Container-Inner");
 		if (clc.length <= 0) return;
 		ABPInst.commentListContainer = clc[0];
 		/** Bind the Send Comment button **/
@@ -972,12 +962,12 @@ var ABP = {
 				if (!ABPInst.state.widescreen) {
 					addClass(playerUnit, "ABP-WideScreen");
 					this.className = "button ABP-WideScreen icon-tv on";
-					playerUnit.dispatchEvent(new CustomEvent("wide"), {status: true});
+					playerUnit.dispatchEvent(new Event("wide"));
 					this.tooltip("退出宽屏");
 				} else {
 					removeClass(playerUnit, "ABP-WideScreen");
 					this.className = "button ABP-WideScreen icon-tv";
-					playerUnit.dispatchEvent(new CustomEvent("wide"), {status: false});
+					playerUnit.dispatchEvent(new Event("normal"));
 					this.tooltip("宽屏模式");
 				}
 				ABPInst.state.widescreen = !ABPInst.state.widescreen;
@@ -1164,7 +1154,7 @@ var ABP = {
 							var newTime = ABPInst.video.currentTime -= 5;
 							ABPInst.cmManager.clear();
 							if (newTime < 0) newTime = 0;
-							ABPInst.video.currentTime = newTime;
+							ABPInst.video.currentTime = newTime.toFixed(3);
 							if (ABPInst.video.paused) ABPInst.btnPlay.click();
 							updateTime(video.currentTime);
 							ABPInst.barTimeHitArea.tooltip(formatTime(video.currentTime));
@@ -1173,7 +1163,7 @@ var ABP = {
 							var newTime = ABPInst.video.currentTime += 5;
 							ABPInst.cmManager.clear();
 							if (newTime > ABPInst.video.duration) newTime = ABPInst.video.duration;
-							ABPInst.video.currentTime = newTime;
+							ABPInst.video.currentTime = newTime.toFixed(3);
 							if (ABPInst.video.paused) ABPInst.btnPlay.click();
 							updateTime(video.currentTime);
 							ABPInst.barTimeHitArea.tooltip(formatTime(video.currentTime));
@@ -1181,13 +1171,13 @@ var ABP = {
 						case 38:
 							var newVolume = ABPInst.video.volume + .1;
 							if (newVolume > 1) newVolume = 1;
-							ABPInst.video.volume = newVolume
+							ABPInst.video.volume = newVolume.toFixed(3);
 							updateVolume(ABPInst.video.volume);
 							break;
 						case 40:
 							var newVolume = ABPInst.video.volume - .1;
 							if (newVolume < 0) newVolume = 0;
-							ABPInst.video.volume = newVolume;
+							ABPInst.video.volume = newVolume.toFixed(3);
 							updateVolume(ABPInst.video.volume);
 							break;
 					}

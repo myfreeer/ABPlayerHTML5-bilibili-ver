@@ -275,7 +275,7 @@
   left: 40px;
 }
 
-.ABP-Unit .ABP-Text input[type=text]{
+.ABP-Unit .ABP-Text input{
   position: absolute;
   color: #666;
   width: -webkit-calc(100% - 148px);
@@ -619,12 +619,9 @@
 }
 
 .ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container {
-  margin: 0;
-  padding: 0;
   width: 100%;
   height: -webkit-calc(100% - 25px);
   height: calc(100% - 25px);
-  list-style-type: none;
   font-size: 12px;
   line-height: 24px;
   color: #666;
@@ -656,16 +653,19 @@
   background: #aaa;
 }
 
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container-Inner {
+  padding: 0;
+  margin: 0;
+}
+
 .ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li {
+  position: relative;
+  display: block;
   height: 24px;
   overflow: hidden;
   cursor: default;
   -webkit-transition: background 0.1s linear;
           transition: background 0.1s linear;
-}
-
-.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li.on {
-  background: #99c0ff;
 }
 
 .ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li:hover {
