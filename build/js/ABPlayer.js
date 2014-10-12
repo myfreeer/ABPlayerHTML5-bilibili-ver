@@ -91,7 +91,7 @@ var ABP = {
 		}
 	}
 
-	function htmlEscape(text) {
+	var htmlEscape = function(text) {
 		return text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 	}
 
@@ -156,7 +156,7 @@ var ABP = {
 				elemOffset = elem.getBoundingClientRect(),
 				unitOffset = findClosest(elem, 'ABP-Unit').getBoundingClientRect(),
 				elemTop = elemOffset.top - unitOffset.top,
-				elemLeft = follow ? e.x - unitOffset.left : elemOffset.left - unitOffset.left;
+				elemLeft = follow ? e.clientX - unitOffset.left : elemOffset.left - unitOffset.left;
 			if (tooltip == null) {
 				tooltip = _("div", {
 					"id": "ABP-Tooltip",
@@ -181,7 +181,9 @@ var ABP = {
 		});
 		elem.addEventListener("updatetooltip", function(e) {
 			var tooltip = $("ABP-Tooltip");
-			if (tooltip && tooltip.by == e.srcElement) tooltip.innerHTML = htmlEscape(elem.tooltipData);
+			if (tooltip && tooltip.by == e.target) {
+				tooltip.innerHTML = htmlEscape(elem.tooltipData);
+			}
 		});
 	}
 	var addClass = function(elem, className) {
@@ -565,7 +567,17 @@ var ABP = {
 				for (var i = firstIndex; i <= firstIndex + 40; i++) {
 					if (typeof ABPInst.commentObjArray[i] !== "undefined") {
 						if (i == firstIndex && i > 0) {
-							var commentObj = ABPInst.commentObjArray[i].cloneNode(true);
+							var commentObj = ABPInst.commentObjArray[i].cloneNode(true),
+								commentObjContent = commentObj.getElementsByClassName("content")[0],
+								commentObjDate = commentObj.getElementsByClassName("date")[0];
+							commentObj.addEventListener("dblclick", function(e) {
+								ABPInst.video.currentTime = ABPInst.commentObjArray[i].data.time / 1000;
+								updateTime(video.currentTime);
+							});
+							hoverTooltip(commentObjContent, false, 36);
+							hoverTooltip(commentObjDate, false, 18);
+							commentObjContent.tooltip(ABPInst.commentObjArray[i].data.content);
+							commentObjDate.tooltip(formatDate(ABPInst.commentObjArray[i].data.date));
 							commentObj.style.paddingTop = 24 * firstIndex + "px";
 						} else {
 							var commentObj = ABPInst.commentObjArray[i];
@@ -637,14 +649,14 @@ var ABP = {
 					ABPInst.commentListContainer.parentElement.addEventListener("scroll", ABPInst.renderCommentList);
 				});
 				ABPInst.cmManager.setBounds = function() {
-					var actualWidth = ABPInst.videoDiv.offsetWidth,
-						actualHeight = ABPInst.videoDiv.offsetHeight,
-						scale = actualHeight / 438 * ABPInst.commentScale;
 					if (playerUnit.offsetHeight <= 300 || playerUnit.offsetWidth <= 700) {
 						addClass(playerUnit, "ABP-Mini");
 					} else {
 						removeClass(playerUnit, "ABP-Mini");
 					}
+					var actualWidth = ABPInst.videoDiv.offsetWidth,
+						actualHeight = ABPInst.videoDiv.offsetHeight,
+						scale = actualHeight / 438 * ABPInst.commentScale;
 					this.width = actualWidth / scale;
 					this.height = 438 / ABPInst.commentScale;
 					this.dispatchEvent("resize");
@@ -1039,7 +1051,7 @@ var ABP = {
 			});
 			document.addEventListener("mouseup", function(e) {
 				if (dragging) {
-					var newTime = ((e.x - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
+					var newTime = ((e.clientX - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
 					if (newTime < 0) newTime = 0;
 					if (Math.abs(newTime - ABPInst.video.currentTime) > 4) {
 						if (ABPInst.cmManager)
@@ -1054,7 +1066,7 @@ var ABP = {
 				ABPInst.timeLabel.innerHTML = formatTime(time) + " / " + formatTime(video.duration);
 			}
 			document.addEventListener("mousemove", function(e) {
-				var newTime = ((e.x - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
+				var newTime = ((e.clientX - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
 				if (newTime < 0) newTime = 0;
 				if (newTime > ABPInst.video.duration) newTime = ABPInst.video.duration;
 				ABPInst.barTimeHitArea.tooltip(formatTime(newTime));
@@ -1081,7 +1093,7 @@ var ABP = {
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingVolume) {
-					var newVolume = (e.x - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
+					var newVolume = (e.clientX - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
 					if (newVolume < 0) newVolume = 0;
 					if (newVolume > 1) newVolume = 1;
 					ABPInst.video.volume = newVolume;
@@ -1090,7 +1102,7 @@ var ABP = {
 				draggingVolume = false;
 			});
 			document.addEventListener("mousemove", function(e) {
-				var newVolume = (e.x - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
+				var newVolume = (e.clientX - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
 				if (newVolume < 0) newVolume = 0;
 				if (newVolume > 1) newVolume = 1;
 				if (draggingVolume) {
@@ -1112,7 +1124,7 @@ var ABP = {
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingOpacity) {
-					var newOpacity = (e.x - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
+					var newOpacity = (e.clientX - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
 					if (newOpacity < 0) newOpacity = 0;
 					if (newOpacity > 1) newOpacity = 1;
 					ABPInst.cmManager.options.opacity = newOpacity;
@@ -1121,7 +1133,7 @@ var ABP = {
 				draggingOpacity = false;
 			});
 			document.addEventListener("mousemove", function(e) {
-				var newOpacity = (e.x - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
+				var newOpacity = (e.clientX - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
 				if (newOpacity < 0) newOpacity = 0;
 				if (newOpacity > 1) newOpacity = 1;
 				if (draggingOpacity) {
