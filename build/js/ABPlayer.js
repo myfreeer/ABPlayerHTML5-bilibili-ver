@@ -936,8 +936,8 @@ var ABP = {
 			var fullscreenChangeHandler = function() {
 				if (!document.isFullScreen() && hasClass(playerUnit, "ABP-FullScreen")) {
 					removeClass(playerUnit, "ABP-FullScreen");
-					this.className = "button ABP-FullScreen icon-screen-full";
-					this.tooltip("浏览器全屏");
+					ABPInst.btnFull.className = "button ABP-FullScreen icon-screen-full";
+					ABPInst.btnFull.tooltip("浏览器全屏");
 				}
 			}
 			document.addEventListener("fullscreenchange", fullscreenChangeHandler, false);
