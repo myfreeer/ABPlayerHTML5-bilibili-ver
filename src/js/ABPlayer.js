@@ -37,6 +37,25 @@ var ABP = {
 		}
 		return elem;
 	};
+
+	var findRow = function(node) {
+		var i = 1;
+		while (node = node.previousSibling) {
+			if (node.nodeType === 1) {
+				++i
+			}
+		}
+		return i;
+	}
+
+	var findClosest = function(node, className) {
+		for (; node; node = node.parentNode) {
+			if (hasClass(node.parentNode, className)) {
+				return node;
+			}
+		}
+	}
+
 	HTMLElement.prototype.tooltip = function(data) {
 		this.tooltipData = data;
 		this.dispatchEvent(new Event("updatetooltip"));
@@ -72,6 +91,10 @@ var ABP = {
 		}
 	}
 
+	var htmlEscape = function(text) {
+		return text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+	}
+
 	var formatInt = function(source, length) {
 		var strTemp = "";
 		for (var i = 1; i <= length - (source + "").length; i++) {
@@ -86,6 +109,27 @@ var ABP = {
 			strTemp += "0";
 		}
 		return strTemp + source;
+	}
+
+	var formatDate = function(timestamp, shortFormat) {
+		if (timestamp == 0) {
+			return lang['oneDay'];
+		}
+		var date = new Date((parseInt(timestamp)) * 1000),
+			year, month, day, hour, minute, second;
+		year = String(date.getFullYear());
+		month = String(date.getMonth() + 1);
+		if (month.length == 1) month = "0" + month;
+		day = String(date.getDate());
+		if (day.length == 1) day = "0" + day;
+		hour = String(date.getHours());
+		if (hour.length == 1) hour = "0" + hour;
+		minute = String(date.getMinutes());
+		if (minute.length == 1) minute = "0" + minute;
+		second = String(date.getSeconds());
+		if (second.length == 1) second = "0" + second;
+		if (shortFormat) return String(month + "-" + day + " " + hour + ":" + minute);
+		return String(year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second);
 	}
 
 	var formatTime = function(time) {
@@ -110,15 +154,15 @@ var ABP = {
 				elemWidth = elem.clientWidth,
 				elemHeight = elem.clientHeight,
 				elemOffset = elem.getBoundingClientRect(),
-				unitOffset = elem.parentElement.parentElement.getBoundingClientRect(),
+				unitOffset = findClosest(elem, 'ABP-Unit').getBoundingClientRect(),
 				elemTop = elemOffset.top - unitOffset.top,
-				elemLeft = follow ? e.x - unitOffset.left : elemOffset.left - unitOffset.left;
+				elemLeft = follow ? e.clientX - unitOffset.left : elemOffset.left - unitOffset.left;
 			if (tooltip == null) {
 				tooltip = _("div", {
 					"id": "ABP-Tooltip",
 				}, [_("text", elem.tooltipData)]);
 				tooltip.by = elem;
-				elem.parentElement.parentElement.appendChild(tooltip);
+				findClosest(elem, 'ABP-Unit').appendChild(tooltip);
 				tooltip.style["top"] = elemTop + elemHeight + 2 + "px";
 				tooltip.style["left"] = elemLeft + elemWidth / 2 - tooltip.clientWidth / 2 + "px";
 			}
@@ -137,12 +181,15 @@ var ABP = {
 		});
 		elem.addEventListener("updatetooltip", function(e) {
 			var tooltip = $("ABP-Tooltip");
-			if (tooltip && tooltip.by == e.srcElement) tooltip.innerHTML = elem.tooltipData;
+			if (tooltip && tooltip.by == e.target) {
+				tooltip.innerHTML = htmlEscape(elem.tooltipData);
+			}
 		});
 	}
 	var addClass = function(elem, className) {
 		if (elem == null) return;
 		var oldClass = elem.className.split(" ");
+		if (oldClass[0] == "") oldClass = [];
 		if (oldClass.indexOf(className) < 0) {
 			oldClass.push(className);
 		}
@@ -151,11 +198,13 @@ var ABP = {
 	var hasClass = function(elem, className) {
 		if (elem == null) return false;
 		var oldClass = elem.className.split(" ");
+		if (oldClass[0] == "") oldClass = [];
 		return oldClass.indexOf(className) >= 0;
 	}
 	var removeClass = function(elem, className) {
 		if (elem == null) return;
 		var oldClass = elem.className.split(" ");
+		if (oldClass[0] == "") oldClass = [];
 		if (oldClass.indexOf(className) >= 0) {
 			oldClass.splice(oldClass.indexOf(className), 1);
 		}
@@ -267,8 +316,7 @@ var ABP = {
 				})
 			]),
 			_("input", {
-				"type": "text",
-				"placeholder": "哔哩哔哩助手 HTML5 播放器即将支持弹幕发送功能，敬请期待",
+				"value": "哔哩哔哩助手 HTML5 播放器即将支持弹幕发送功能，敬请期待",
 				"disabled": "disabled"
 			}),
 			_("div", {
@@ -356,10 +404,12 @@ var ABP = {
 			}, [_("text", "时间")]), _("div", {
 				"className": "content"
 			}, [_("text", "评论")]), _("div", {
-				"className": "send"
-			}, [_("text", " 发送日期")])]), _("ul", {
+				"className": "date"
+			}, [_("text", " 发送日期")])]), _("div", {
 				"className": "ABP-Comment-List-Container"
-			})
+			}, [_("ul", {
+				"className": "ABP-Comment-List-Container-Inner"
+			})])
 		]));
 		var bind = ABP.bind(container, params.mobile);
 		if (playlist.length > 0) {
@@ -397,6 +447,7 @@ var ABP = {
 
 	ABP.bind = function(playerUnit, mobile, state) {
 		var ABPInst = {
+			playerUnit: playerUnit,
 			btnPlay: null,
 			barTime: null,
 			barLoad: null,
@@ -423,6 +474,10 @@ var ABP = {
 			divTextField: null,
 			txtText: null,
 			cmManager: null,
+			commentList: null,
+			commentListContainer: null,
+			lastSelectedComment: null,
+			commentScale: 0.9,
 			defaults: {
 				w: 0,
 				h: 0
@@ -465,6 +520,75 @@ var ABP = {
 				}
 				playerUnit.hasPopup = false;
 			},
+			loadCommentList: function(sort, order) {
+				order = order == "asc" ? -1 : 1;
+				var keysSorted = Object.keys(ABPInst.commentList).sort(function(a, b) {
+					if (ABPInst.commentList[a][sort] < ABPInst.commentList[b][sort]) return order;
+					if (ABPInst.commentList[a][sort] > ABPInst.commentList[b][sort]) return -order;
+					return 0;
+				});
+				ABPInst.commentObjArray = [];
+				for (i in keysSorted) {
+					var key = keysSorted[i]
+					var comment = ABPInst.commentList[key];
+					if (comment && comment.time) {
+						var commentObj = _("li", {}),
+							commentObjTime = _("span", {
+								"className": "time"
+							}, [_("text", formatTime(comment.time / 1000))]),
+							commentObjContent = _("span", {
+								"className": "content"
+							}, [_("text", comment.content)]),
+							commentObjDate = _("span", {
+								"className": "date"
+							}, [_("text", formatDate(comment.date, true))]);
+						hoverTooltip(commentObjContent, false, 36);
+						hoverTooltip(commentObjDate, false, 18);
+						commentObjContent.tooltip(comment.content);
+						commentObjDate.tooltip(formatDate(comment.date));
+						commentObj.appendChild(commentObjTime);
+						commentObj.appendChild(commentObjContent);
+						commentObj.appendChild(commentObjDate);
+						commentObj.data = comment;
+						commentObj.addEventListener("dblclick", function(e) {
+							ABPInst.video.currentTime = this.data.time / 1000;
+							updateTime(video.currentTime);
+						});
+						ABPInst.commentObjArray.push(commentObj);
+					}
+				}
+				ABPInst.commentListContainer.style.height = ABPInst.commentObjArray.length * 24 + "px";
+				ABPInst.renderCommentList();
+			},
+			renderCommentList: function() {
+				var offset = ABPInst.commentListContainer.parentElement.scrollTop,
+					firstIndex = parseInt(offset / 24);
+				ABPInst.commentListContainer.innerHTML = "";
+				for (var i = firstIndex; i <= firstIndex + 40; i++) {
+					if (typeof ABPInst.commentObjArray[i] !== "undefined") {
+						if (i == firstIndex && i > 0) {
+							var commentObj = ABPInst.commentObjArray[i].cloneNode(true),
+								commentObjContent = commentObj.getElementsByClassName("content")[0],
+								commentObjDate = commentObj.getElementsByClassName("date")[0];
+							commentObj.addEventListener("dblclick", function(e) {
+								ABPInst.video.currentTime = ABPInst.commentObjArray[i].data.time / 1000;
+								updateTime(video.currentTime);
+							});
+							hoverTooltip(commentObjContent, false, 36);
+							hoverTooltip(commentObjDate, false, 18);
+							commentObjContent.tooltip(ABPInst.commentObjArray[i].data.content);
+							commentObjDate.tooltip(formatDate(ABPInst.commentObjArray[i].data.date));
+							commentObj.style.paddingTop = 24 * firstIndex + "px";
+						} else {
+							var commentObj = ABPInst.commentObjArray[i];
+						}
+						ABPInst.commentListContainer.appendChild(commentObj);
+					} else {
+						break;
+					}
+				}
+				ABPInst.commentListContainer.parentElement.scrollTop = offset;
+			},
 			swapVideo: null
 		};
 		ABPInst.swapVideo = function(video) {
@@ -506,6 +630,45 @@ var ABP = {
 			video.isBound = true;
 			var lastPosition = 0;
 			if (ABPInst.cmManager) {
+				ABPInst.cmManager.options.scrollScale = 1.3;
+				ABPInst.cmManager.options.opacity = 0.8;
+				ABPInst.cmManager.addEventListener("load", function() {
+					ABPInst.commentList = {};
+					for (i in ABPInst.cmManager.timeline) {
+						var danmaku = ABPInst.cmManager.timeline[i];
+						ABPInst.commentList[danmaku.dbid] = {
+							"date": danmaku.date,
+							"time": danmaku.stime,
+							"mode": danmaku.mode,
+							"user": danmaku.hash,
+							"pool": danmaku.pool,
+							"content": danmaku.text
+						}
+					}
+					ABPInst.loadCommentList("date", "asc");
+					ABPInst.commentListContainer.parentElement.addEventListener("scroll", ABPInst.renderCommentList);
+				});
+				ABPInst.cmManager.setBounds = function() {
+					if (playerUnit.offsetHeight <= 300 || playerUnit.offsetWidth <= 700) {
+						addClass(playerUnit, "ABP-Mini");
+					} else {
+						removeClass(playerUnit, "ABP-Mini");
+					}
+					var actualWidth = ABPInst.videoDiv.offsetWidth,
+						actualHeight = ABPInst.videoDiv.offsetHeight,
+						scale = actualHeight / 438 * ABPInst.commentScale;
+					this.width = actualWidth / scale;
+					this.height = 438 / ABPInst.commentScale;
+					this.dispatchEvent("resize");
+					for (var a in this.csa) this.csa[a].setBounds(this.width, this.height);
+					this.stage.style.width = actualWidth / scale + "px";
+					this.stage.style.height = 438 / ABPInst.commentScale + "px";
+					this.stage.style.perspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
+					this.stage.style.webkitPerspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
+					this.stage.style.transform = "scale(" + scale + ")";
+					this.stage.style.webkitTransform = "scale(" + scale + ")";
+				}
+				ABPInst.cmManager.setBounds();
 				ABPInst.cmManager.clear();
 				video.addEventListener("progress", function() {
 					if (lastPosition == video.currentTime) {
@@ -516,7 +679,6 @@ var ABP = {
 				});
 				if (window) {
 					window.addEventListener("resize", function() {
-						//Notify on resize
 						ABPInst.cmManager.setBounds();
 					});
 				}
@@ -529,6 +691,7 @@ var ABP = {
 					ABPInst.cmManager.time(Math.floor(video.currentTime * 1000));
 				});
 				video.addEventListener("play", function() {
+					ABPInst.cmManager.setBounds();
 					ABPInst.cmManager.startTimer();
 					try {
 						var e = this.buffered.end(0);
@@ -538,9 +701,9 @@ var ABP = {
 					} catch (err) {}
 				});
 				video.addEventListener("ratechange", function() {
-					if (ABPInst.cmManager.def.globalScale != null) {
+					if (ABPInst.cmManager.options.globalScale != null) {
 						if (video.playbackRate !== 0) {
-							ABPInst.cmManager.def.globalScale = (1 / video.playbackRate);
+							ABPInst.cmManager.options.globalScale = (1 / video.playbackRate);
 							ABPInst.cmManager.rescale();
 						}
 					}
@@ -652,6 +815,10 @@ var ABP = {
 			if (txti.length > 0)
 				ABPInst.txtText = txti[0];
 		}
+		/** Bind the Send Comment List Container **/
+		var clc = playerUnit.getElementsByClassName("ABP-Comment-List-Container-Inner");
+		if (clc.length <= 0) return;
+		ABPInst.commentListContainer = clc[0];
 		/** Bind the Send Comment button **/
 		var csbtn = playerUnit.getElementsByClassName("ABP-Comment-Send");
 		if (csbtn.length <= 0) return;
@@ -737,6 +904,7 @@ var ABP = {
 					ABPInst.video.muted = true;
 					this.className = "button ABP-Volume icon-volume-mute2";
 					this.tooltip("取消静音");
+					ABPInst.barVolume.style.width = "0%";
 				} else {
 					ABPInst.video.muted = false;
 					this.className = "button ABP-Volume icon-volume-";
@@ -745,6 +913,7 @@ var ABP = {
 					else if (ABPInst.video.volume < .67) this.className += "medium";
 					else this.className += "high";
 					this.tooltip("静音");
+					ABPInst.barVolume.style.width = (ABPInst.video.volume * 100) + "%";
 				}
 			});
 			ABPInst.btnWebFull.addEventListener("click", function() {
@@ -758,10 +927,10 @@ var ABP = {
 				if (!ABPInst.state.allowRescale) return;
 				if (ABPInst.state.fullscreen) {
 					if (ABPInst.defaults.w > 0) {
-						ABPInst.cmManager.def.scrollScale = playerUnit.offsetWidth / ABPInst.defaults.w;
+						ABPInst.cmManager.options.scrollScale = playerUnit.offsetWidth / ABPInst.defaults.w;
 					}
 				} else {
-					ABPInst.cmManager.def.scrollScale = 1;
+					ABPInst.cmManager.options.scrollScale = 1;
 				}
 			});
 			var fullscreenChangeHandler = function() {
@@ -794,10 +963,10 @@ var ABP = {
 				if (!ABPInst.state.allowRescale) return;
 				if (ABPInst.state.fullscreen) {
 					if (ABPInst.defaults.w > 0) {
-						ABPInst.cmManager.def.scrollScale = playerUnit.offsetWidth / ABPInst.defaults.w;
+						ABPInst.cmManager.options.scrollScale = playerUnit.offsetWidth / ABPInst.defaults.w;
 					}
 				} else {
-					ABPInst.cmManager.def.scrollScale = 1;
+					ABPInst.cmManager.options.scrollScale = 1;
 				}
 			});
 			ABPInst.btnWide.addEventListener("click", function() {
@@ -805,10 +974,12 @@ var ABP = {
 				if (!ABPInst.state.widescreen) {
 					addClass(playerUnit, "ABP-WideScreen");
 					this.className = "button ABP-WideScreen icon-tv on";
+					playerUnit.dispatchEvent(new Event("wide"));
 					this.tooltip("退出宽屏");
 				} else {
 					removeClass(playerUnit, "ABP-WideScreen");
 					this.className = "button ABP-WideScreen icon-tv";
+					playerUnit.dispatchEvent(new Event("normal"));
 					this.tooltip("宽屏模式");
 				}
 				ABPInst.state.widescreen = !ABPInst.state.widescreen;
@@ -817,10 +988,10 @@ var ABP = {
 				if (!ABPInst.state.allowRescale) return;
 				if (ABPInst.state.fullscreen) {
 					if (ABPInst.defaults.w > 0) {
-						ABPInst.cmManager.def.scrollScale = playerUnit.offsetWidth / ABPInst.defaults.w;
+						ABPInst.cmManager.options.scrollScale = playerUnit.offsetWidth / ABPInst.defaults.w;
 					}
 				} else {
-					ABPInst.cmManager.def.scrollScale = 1;
+					ABPInst.cmManager.options.scrollScale = 1;
 				}
 			});
 			ABPInst.btnDm.addEventListener("click", function() {
@@ -880,7 +1051,7 @@ var ABP = {
 			});
 			document.addEventListener("mouseup", function(e) {
 				if (dragging) {
-					var newTime = ((e.x - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
+					var newTime = ((e.clientX - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
 					if (newTime < 0) newTime = 0;
 					if (Math.abs(newTime - ABPInst.video.currentTime) > 4) {
 						if (ABPInst.cmManager)
@@ -895,7 +1066,7 @@ var ABP = {
 				ABPInst.timeLabel.innerHTML = formatTime(time) + " / " + formatTime(video.duration);
 			}
 			document.addEventListener("mousemove", function(e) {
-				var newTime = ((e.x - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
+				var newTime = ((e.clientX - ABPInst.barTimeHitArea.getBoundingClientRect().left) / ABPInst.barTimeHitArea.offsetWidth) * ABPInst.video.duration;
 				if (newTime < 0) newTime = 0;
 				if (newTime > ABPInst.video.duration) newTime = ABPInst.video.duration;
 				ABPInst.barTimeHitArea.tooltip(formatTime(newTime));
@@ -922,7 +1093,7 @@ var ABP = {
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingVolume) {
-					var newVolume = (e.x - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
+					var newVolume = (e.clientX - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
 					if (newVolume < 0) newVolume = 0;
 					if (newVolume > 1) newVolume = 1;
 					ABPInst.video.volume = newVolume;
@@ -931,7 +1102,7 @@ var ABP = {
 				draggingVolume = false;
 			});
 			document.addEventListener("mousemove", function(e) {
-				var newVolume = (e.x - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
+				var newVolume = (e.clientX - ABPInst.barVolumeHitArea.getBoundingClientRect().left) / ABPInst.barVolumeHitArea.offsetWidth;
 				if (newVolume < 0) newVolume = 0;
 				if (newVolume > 1) newVolume = 1;
 				if (draggingVolume) {
@@ -946,28 +1117,28 @@ var ABP = {
 			ABPInst.barOpacityHitArea.addEventListener("mousedown", function(e) {
 				draggingOpacity = true;
 			});
-			ABPInst.barOpacity.style.width = (ABPInst.cmManager.def.opacity * 100) + "%";
+			ABPInst.barOpacity.style.width = (ABPInst.cmManager.options.opacity * 100) + "%";
 			var updateOpacity = function(opacity) {
 				ABPInst.barOpacity.style.width = (opacity * 100) + "%";
 				ABPInst.barOpacityHitArea.tooltip(parseInt(opacity * 100) + "%");
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingOpacity) {
-					var newOpacity = (e.x - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
+					var newOpacity = (e.clientX - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
 					if (newOpacity < 0) newOpacity = 0;
 					if (newOpacity > 1) newOpacity = 1;
-					ABPInst.cmManager.def.opacity = newOpacity;
-					updateOpacity(ABPInst.cmManager.def.opacity);
+					ABPInst.cmManager.options.opacity = newOpacity;
+					updateOpacity(ABPInst.cmManager.options.opacity);
 				}
 				draggingOpacity = false;
 			});
 			document.addEventListener("mousemove", function(e) {
-				var newOpacity = (e.x - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
+				var newOpacity = (e.clientX - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
 				if (newOpacity < 0) newOpacity = 0;
 				if (newOpacity > 1) newOpacity = 1;
 				if (draggingOpacity) {
-					ABPInst.cmManager.def.opacity = newOpacity;
-					updateOpacity(ABPInst.cmManager.def.opacity);
+					ABPInst.cmManager.options.opacity = newOpacity;
+					updateOpacity(ABPInst.cmManager.options.opacity);
 				} else {
 					ABPInst.barOpacityHitArea.tooltip(parseInt(newOpacity * 100) + "%");
 				}
@@ -995,7 +1166,7 @@ var ABP = {
 							var newTime = ABPInst.video.currentTime -= 5;
 							ABPInst.cmManager.clear();
 							if (newTime < 0) newTime = 0;
-							ABPInst.video.currentTime = newTime;
+							ABPInst.video.currentTime = newTime.toFixed(3);
 							if (ABPInst.video.paused) ABPInst.btnPlay.click();
 							updateTime(video.currentTime);
 							ABPInst.barTimeHitArea.tooltip(formatTime(video.currentTime));
@@ -1004,7 +1175,7 @@ var ABP = {
 							var newTime = ABPInst.video.currentTime += 5;
 							ABPInst.cmManager.clear();
 							if (newTime > ABPInst.video.duration) newTime = ABPInst.video.duration;
-							ABPInst.video.currentTime = newTime;
+							ABPInst.video.currentTime = newTime.toFixed(3);
 							if (ABPInst.video.paused) ABPInst.btnPlay.click();
 							updateTime(video.currentTime);
 							ABPInst.barTimeHitArea.tooltip(formatTime(video.currentTime));
@@ -1012,13 +1183,13 @@ var ABP = {
 						case 38:
 							var newVolume = ABPInst.video.volume + .1;
 							if (newVolume > 1) newVolume = 1;
-							ABPInst.video.volume = newVolume
+							ABPInst.video.volume = newVolume.toFixed(3);
 							updateVolume(ABPInst.video.volume);
 							break;
 						case 40:
 							var newVolume = ABPInst.video.volume - .1;
 							if (newVolume < 0) newVolume = 0;
-							ABPInst.video.volume = newVolume;
+							ABPInst.video.volume = newVolume.toFixed(3);
 							updateVolume(ABPInst.video.volume);
 							break;
 					}
@@ -1174,8 +1345,8 @@ var ABP = {
 							Math.round(ABPInst.video.volume * 100) + "%", 800);
 					} else {
 						if (ABPInst.cmManager !== null) {
-							var opa = Math.min(Math.round(ABPInst.cmManager.def.opacity * 100) + 5, 100);
-							ABPInst.cmManager.def.opacity = opa / 100;
+							var opa = Math.min(Math.round(ABPInst.cmManager.options.opacity * 100) + 5, 100);
+							ABPInst.cmManager.options.opacity = opa / 100;
 							ABPInst.removePopup();
 							var p = ABPInst.createPopup("弹幕透明度：" + Math.round(opa) + "%", 800);
 						}
@@ -1189,8 +1360,8 @@ var ABP = {
 							Math.round(ABPInst.video.volume * 100) + "%", 800);
 					} else {
 						if (ABPInst.cmManager !== null) {
-							var opa = Math.max(Math.round(ABPInst.cmManager.def.opacity * 100) - 5, 0);
-							ABPInst.cmManager.def.opacity = opa / 100;
+							var opa = Math.max(Math.round(ABPInst.cmManager.options.opacity * 100) - 5, 0);
+							ABPInst.cmManager.options.opacity = opa / 100;
 							ABPInst.removePopup();
 							var p = ABPInst.createPopup("弹幕透明度：" + Math.round(opa) + "%", 800);
 						}
