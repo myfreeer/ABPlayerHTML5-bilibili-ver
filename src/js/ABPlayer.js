@@ -666,7 +666,7 @@ var ABP = {
 					this.stage.style.perspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
 					this.stage.style.webkitPerspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
 					this.stage.style.transform = "scale(" + scale + ")";
-					this.stage.style.webkitTransform = "scale(" + scale + ")";
+					this.stage.style.zoom = scale;
 				}
 				ABPInst.cmManager.setBounds();
 				ABPInst.cmManager.clear();
