@@ -259,19 +259,139 @@
   border-right: solid 1px #ececec;
 }
 
-.ABP-Unit .ABP-CommentStyle .button {
+.ABP-Unit .ABP-CommentStyle .button, .ABP-Unit .ABP-CommentStyle .button-group {
   width: 40px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-Font {
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontGroup {
   left: 0;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-Color {
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-Color-Display {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  top: 4px;
+  left: 14px;
+  background-color: #FFF;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontGroup .ABP-Comment-FontOption {
+  width: 200px;
+  height: 140px;
+  background: rgba(255,255,255,.9);
+  position: absolute;
+  padding: 10px;
+  left: 5px;
+  bottom: 25px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0,0,0,.2);
+  transition: opacity 0.1s ease-in-out;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  cursor: auto;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-title {
+  margin: 0;
+  text-align: left;
+  color: #666;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-option {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  height: 40px;
+  line-height: 64px;
+  width: 56px;
+  font-size: 10px;
+  border-radius: 5px;
+  margin: 4px 2px;
+  border: solid 2px;
+  cursor: pointer;
+  transition: all 0.1s ease-in-out;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-option:hover {
+  color: #666;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-option.on {
+  color: #FFF;
+  background-color: #666;
+  border-color: #666;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-option::after {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  line-height: 30px;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentFontSize"] .style-option[value="18"]::after {  
+  content: "A";
+  font-size: 18px;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentFontSize"] .style-option[value="25"]::after {
+  content: "A";
+  font-size: 25px;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option::after {
+  content: "▊▊▊";
+  font-size: 6px;
+  line-height: 8px;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="5"]::after {  
+  top: 4px;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="1"]::after {  
+  white-space: pre;
+  content: "◀ ▊▊▊        \A        ◀ ▊▊▊";
+  font-size: 6px;
+  line-height: 8px;
+  top: 6px;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="4"]::after {  
+  top: 16px;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-ColorGroup {
   left: 40px;
 }
 
-.ABP-Unit .ABP-Text input{
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-ColorGroup .ABP-Comment-ColorOption {
+  width: 347px;
+  height: 170px;
+  background: rgba(255,255,255,.9);
+  position: absolute;
+  left: 5px;
+  bottom: 25px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0,0,0,.2);
+  transition: opacity 0.1s ease-in-out;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+}
+
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-ColorGroup.on .ABP-Comment-ColorOption,
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontGroup.on .ABP-Comment-FontOption {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.ABP-Unit .ABP-Text input.ABP-Comment-Input{
   position: absolute;
   color: #666;
   width: calc(100% - 148px);
@@ -285,7 +405,7 @@
   transition: box-shadow .2s ease-in-out;
 }
 
-.ABP-Unit .ABP-Text input[type=text]:focus{
+.ABP-Unit .ABP-Text input.ABP-Comment-Input:focus{
   box-shadow: inset 0 5px 5px rgba(0,0,0,.1);
 }
 
@@ -591,18 +711,35 @@
 .ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title * {
   position: absolute;
   text-indent: 6px;
+  transition: background 0.1s linear;
 }
 
-.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .time {
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title *:hover {
+  background: #cde2fe;
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title *.asc::after {
+  position: absolute;
+  right: 0;
+  content: "▲";
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title *.desc::after {
+  position: absolute;
+  right: 0;
+  content: "▼";
+}
+
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .cmt-time {
   width: 45px;
 }
 
-.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .content {
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .cmt-content {
   left: 45px;
   width: 155px;
 }
 
-.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .date {
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .cmt-date {
   left: 200px;
   width: 99px;
 }
@@ -666,16 +803,16 @@
   height: 24px;
 }
 
-.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .time {
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .cmt-time {
   text-align: center;
   width: 50px;
 }
 
-.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .content {
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .cmt-content {
   width: 155px;
 }
 
-.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .date {
+.ABP-Unit .ABP-Comment-List .ABP-Comment-List-Container li .cmt-date {
   width: 84px;
 }
 

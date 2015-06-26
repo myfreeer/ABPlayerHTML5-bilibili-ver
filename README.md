@@ -6,7 +6,7 @@ that uses CommentCoreLibrary as a backing implementation.
 
 ## Bilibili Ver
 
-This repository is forked from the original one, aiming at stylizing and optimizing the ABPlayerHTML5 for Bilibili.
+This repository is forked from the original one, aiming at stylizing and optimizing the ABPlayerHTML5 for [Bilibili Helper](https://github.com/zhuogu/Bilibili-Helper).
 
 ### Demo
 Feel free to try out our [demo](http://zhuogu.github.io/ABPlayerHTML5-bilibili-ver/build/demo.html).
@@ -36,15 +36,6 @@ can check them out by navigating to previous commits.
 Please use `npm install` to install the needed libraries and then use `grunt` to
 compile the project.
 
-### Mobile
-
-ABPlayerHTML5 is designed to work with mobile devices allowing swipe gestures 
-and enhanced space allocation. However please note that when using in iOS 
-versions for iPhone & iPod, embedded playback is not supported so there will be 
-no comments displayed as the video is played in the system's player. 
-
-For iPad and OS X, Safari allows inline videos so there should be no problem.
-
 ## CommentCoreLibrary
 
 ABPlayerHTML5 employs a compiled version of CommentCoreLibrary. If you are only 
@@ -73,10 +64,6 @@ Safari和IE。项目中不包括对脚本弹幕的支持，因为脚本弹幕的
 变得困难。
 
 以前版本的旧文件在新版下不会保留，如果需要使用旧的界面，请checkout更早的commit。
-
-### 移动终端
-本播放器自带对大部分支持HTML5的移动终端的支持，包括简单的手势支持和界面优化。不过值得注意的是iPhone
-和iPod很可能无法正确还原弹幕，因为这些设备上视频由设备接管，不能内嵌在浏览器中。
 
 # 许可
 版权所有 (c) 2014 Jim Chen (http://kanoha.org/), 项目遵循 

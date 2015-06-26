@@ -5,6 +5,8 @@ var ABP = {
 (function() {
 	"use strict";
 	if (!ABP) return;
+	var $$ = jQuery;
+	jQuery.noConflict();
 	var $ = function(e) {
 		return document.getElementById(e);
 	};
@@ -231,8 +233,7 @@ var ABP = {
 			"replaceMode": true,
 			"width": 512,
 			"height": 384,
-			"src": "",
-			"mobile": false
+			"src": ""
 		});
 		if (typeof element === "string") {
 			elem = $(element);
@@ -286,7 +287,6 @@ var ABP = {
 				} else if (plist[id].hasOwnProperty("video")) {
 					playlist.push(plist[id]["video"]);
 				} else {
-					console.log("No recognized format");
 				}
 				danmaku.push(plist[id]["comments"]);
 			}
@@ -303,21 +303,64 @@ var ABP = {
 			}),
 			playlist[0]
 		]), _("div", {
+			"className": "ABP-Bottom",
+		}, [_("div", {
 			"className": "ABP-Text",
 		}, [
 			_("div", {
 				"className": "ABP-CommentStyle"
 			}, [
 				_("div", {
+					"className": "button-group ABP-Comment-FontGroup"
+				}, [_("div", {
 					"className": "button ABP-Comment-Font icon-font-style"
-				}),
+				}), _("div", {
+					"className": "ABP-Comment-FontOption"
+				}, [
+					_("p", {
+						"className": "style-title"
+					}, [_("text", "弹幕字号")]),
+					_("div", {
+						"className": "style-select",
+						"name": "commentFontSize"
+					}, [_("div", {
+						"className": "style-option",
+						"value": 18
+					}, [_("text", "小字号")]), _("div", {
+						"className": "style-option on",
+						"value": 25
+					}, [_("text", "中字号")])]),
+					_("p", {
+						"className": "style-title"
+					}, [_("text", "弹幕模式")]),
+					_("div", {
+						"className": "style-select",
+						"name": "commentMode"
+					}, [_("div", {
+						"className": "style-option",
+						"value": 5
+					}, [_("text", "顶端渐隐")]), _("div", {
+						"className": "style-option on",
+						"value": 1
+					}, [_("text", "滚动字幕")]), _("div", {
+						"className": "style-option",
+						"value": 4
+					}, [_("text", "底端渐隐")])])
+				])]),
 				_("div", {
+					"className": "button-group ABP-Comment-ColorGroup"
+				}, [_("div", {
+					"className": "ABP-Comment-Color-Display"
+				}), _("div", {
 					"className": "button ABP-Comment-Color icon-color-mode"
-				})
+				}), _("div", {
+					"className": "ABP-Comment-ColorOption"
+				}, [_("div", {
+					"className": "ABP-Comment-ColorPicker"
+				})])]),
 			]),
 			_("input", {
-				"value": "哔哩哔哩助手 HTML5 播放器即将支持弹幕发送功能，敬请期待",
-				"disabled": "disabled"
+				"className": "ABP-Comment-Input",
 			}),
 			_("div", {
 				"className": "ABP-Comment-Send"
@@ -393,25 +436,28 @@ var ABP = {
 			}), _("div", {
 				"className": "button ABP-Web-FullScreen icon-screen"
 			})])
-		])]));
+		])])]));
 		container.appendChild(_("div", {
 			"className": "ABP-Comment-List"
 		}, [
 			_("div", {
 				"className": "ABP-Comment-List-Title"
 			}, [_("div", {
-				"className": "time"
+				"className": "cmt-time",
+				"item": "time"
 			}, [_("text", "时间")]), _("div", {
-				"className": "content"
+				"className": "cmt-content",
+				"item": "content"
 			}, [_("text", "评论")]), _("div", {
-				"className": "date"
+				"className": "cmt-date",
+				"item": "date"
 			}, [_("text", " 发送日期")])]), _("div", {
 				"className": "ABP-Comment-List-Container"
 			}, [_("ul", {
 				"className": "ABP-Comment-List-Container-Inner"
 			})])
 		]));
-		var bind = ABP.bind(container, params.mobile);
+		var bind = ABP.bind(container);
 		if (playlist.length > 0) {
 			var currentVideo = playlist[0];
 			bind.gotoNext = function() {
@@ -441,11 +487,7 @@ var ABP = {
 		return bind;
 	}
 
-	ABP.load = function(inst, videoProvider, commentProvider, commentReceiver) {
-		// 
-	};
-
-	ABP.bind = function(playerUnit, mobile, state) {
+	ABP.bind = function(playerUnit, state) {
 		var ABPInst = {
 			playerUnit: playerUnit,
 			btnPlay: null,
@@ -471,12 +513,16 @@ var ABP = {
 			videoDiv: null,
 			btnVolume: null,
 			video: null,
-			divTextField: null,
 			txtText: null,
+			commentColor: 'ffffff',
+			commentFontSize: 25,
+			commentMode: 1,
+			displayColor: null,
 			cmManager: null,
 			commentList: null,
 			commentListContainer: null,
 			lastSelectedComment: null,
+			commentCoolDown: 0,
 			commentScale: 0.9,
 			defaults: {
 				w: 0,
@@ -529,18 +575,18 @@ var ABP = {
 				});
 				ABPInst.commentObjArray = [];
 				for (i in keysSorted) {
-					var key = keysSorted[i]
+					var key = keysSorted[i];
 					var comment = ABPInst.commentList[key];
 					if (comment && comment.time) {
 						var commentObj = _("li", {}),
 							commentObjTime = _("span", {
-								"className": "time"
+								"className": "cmt-time"
 							}, [_("text", formatTime(comment.time / 1000))]),
 							commentObjContent = _("span", {
-								"className": "content"
+								"className": "cmt-content"
 							}, [_("text", comment.content)]),
 							commentObjDate = _("span", {
-								"className": "date"
+								"className": "cmt-date"
 							}, [_("text", formatDate(comment.date, true))]);
 						hoverTooltip(commentObjContent, false, 36);
 						hoverTooltip(commentObjDate, false, 18);
@@ -568,8 +614,8 @@ var ABP = {
 					if (typeof ABPInst.commentObjArray[i] !== "undefined") {
 						if (i == firstIndex && i > 0) {
 							var commentObj = ABPInst.commentObjArray[i].cloneNode(true),
-								commentObjContent = commentObj.getElementsByClassName("content")[0],
-								commentObjDate = commentObj.getElementsByClassName("date")[0];
+								commentObjContent = commentObj.getElementsByClassName("cmt-content")[0],
+								commentObjDate = commentObj.getElementsByClassName("cmt-date")[0];
 							commentObj.addEventListener("dblclick", function(e) {
 								ABPInst.video.currentTime = ABPInst.commentObjArray[i].data.time / 1000;
 								updateTime(video.currentTime);
@@ -636,13 +682,15 @@ var ABP = {
 					ABPInst.commentList = {};
 					for (i in ABPInst.cmManager.timeline) {
 						var danmaku = ABPInst.cmManager.timeline[i];
-						ABPInst.commentList[danmaku.dbid] = {
-							"date": danmaku.date,
-							"time": danmaku.stime,
-							"mode": danmaku.mode,
-							"user": danmaku.hash,
-							"pool": danmaku.pool,
-							"content": danmaku.text
+						if (danmaku.dbid && danmaku.stime) {
+							ABPInst.commentList[danmaku.dbid] = {
+								"date": danmaku.date,
+								"time": danmaku.stime,
+								"mode": danmaku.mode,
+								"user": danmaku.hash,
+								"pool": danmaku.pool,
+								"content": danmaku.text
+							}
 						}
 					}
 					ABPInst.loadCommentList("date", "asc");
@@ -665,8 +713,8 @@ var ABP = {
 					this.stage.style.height = 438 / ABPInst.commentScale + "px";
 					this.stage.style.perspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
 					this.stage.style.webkitPerspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
-					this.stage.style.transform = "scale(" + scale + ")";
-					this.stage.style.webkitTransform = "scale(" + scale + ")";
+					//this.stage.style.transform = "scale(" + scale + ")";
+					this.stage.style.zoom = scale;
 				}
 				ABPInst.cmManager.setBounds();
 				ABPInst.cmManager.clear();
@@ -719,7 +767,6 @@ var ABP = {
 				});
 			}
 		}
-
 		if (playerUnit === null || playerUnit.getElementsByClassName === null) return;
 		ABPInst.defaults.w = playerUnit.offsetWidth;
 		ABPInst.defaults.h = playerUnit.offsetHeight;
@@ -733,9 +780,6 @@ var ABP = {
 				video = _v[0].children[i];
 				break;
 			}
-		}
-		if (_v[0] && mobile) {
-			_v[0].style.bottom = "0px";
 		}
 		var cmtc = _v[0].getElementsByClassName("ABP-Container");
 		if (cmtc.length > 0)
@@ -807,14 +851,13 @@ var ABP = {
 		ABPInst.btnColor = ccbtn[0];
 		ABPInst.btnColor.tooltip("弹幕颜色");
 		hoverTooltip(ABPInst.btnColor);
-		/** Bind the TextField **/
-		var txtf = playerUnit.getElementsByClassName("ABP-Text");
-		if (txtf.length > 0) {
-			ABPInst.divTextField = txtf[0];
-			var txti = txtf[0].getElementsByTagName("input");
-			if (txti.length > 0)
-				ABPInst.txtText = txti[0];
-		}
+		var ccd = playerUnit.getElementsByClassName("ABP-Comment-Color-Display");
+		if (ccd.length <= 0) return;
+		ABPInst.displayColor = ccd[0];
+		/** Bind the Comment Input **/
+		var cmti = playerUnit.getElementsByClassName("ABP-Comment-Input");
+		if (cmti.length <= 0) return;
+		ABPInst.txtText = cmti[0];
 		/** Bind the Send Comment List Container **/
 		var clc = playerUnit.getElementsByClassName("ABP-Comment-List-Container-Inner");
 		if (clc.length <= 0) return;
@@ -855,44 +898,28 @@ var ABP = {
 				});
 			}
 		}
-		/** Bind mobile **/
-		if (mobile) {
-			var timer = -1;
-			var hideBar = function() {
-				ABPInst.controlBar.style.display = "none";
-				ABPInst.divTextField.style.display = "none";
-				ABPInst.divComment.style.bottom = "0px";
-				ABPInst.cmManager.setBounds();
-			};
-			ABPInst.divComment.style.bottom =
-				(ABPInst.controlBar.offsetHeight + ABPInst.divTextField.offsetHeight) + "px";
-			var listenerMove = function() {
-				ABPInst.controlBar.style.display = "";
-				ABPInst.divTextField.style.display = "";
-				ABPInst.divComment.style.bottom =
-					(ABPInst.controlBar.offsetHeight + ABPInst.divTextField.offsetHeight) + "px";
-				try {
-					if (timer != -1) {
-						clearInterval(timer);
-						timer = -1;
-					}
-					timer = setInterval(function() {
-						if (document.activeElement !== ABPInst.txtText) {
-							hideBar();
-							clearInterval(timer);
-							timer = -1;
-						}
-					}, 2500);
-				} catch (e) {
-					console.log(e);
-				}
-			};
-			playerUnit.addEventListener("touchmove", listenerMove);
-			playerUnit.addEventListener("mousemove", listenerMove);
-			timer = setTimeout(function() {
-				hideBar();
-			}, 4000);
-		}
+		$$('.ABP-Comment-List-Title *').click(function() {
+			var item = $$(this).attr('item'),
+				order = $$(this).hasClass('asc') ? 'desc' : 'asc';
+			$$('.ABP-Comment-List-Title *').removeClass('asc').removeClass('desc');
+			$$(this).addClass(order);
+			ABPInst.loadCommentList(item, order);
+
+		});
+		$$('.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-option').click(function() {
+			$$(this).closest('.style-select').find('.style-option').removeClass('on');
+			$$(this).addClass('on');
+			ABPInst[$$(this).closest('.style-select').attr('name')] = parseInt($$(this).attr('value'));
+		});
+		$$(playerUnit).find('.ABP-Comment-ColorPicker').colpick({
+			flat: true,
+			submit: 0,
+			color: 'ffffff',
+			onChange: function(hsb, hex) {
+				ABPInst.commentColor = hex;
+				ABPInst.displayColor.style.backgroundColor = '#' + hex;
+			}
+		});
 		if (video.isBound !== true) {
 			ABPInst.swapVideo(video);
 			ABPInst.videoDiv.addEventListener("click", function(e) {
@@ -932,6 +959,12 @@ var ABP = {
 				} else {
 					ABPInst.cmManager.options.scrollScale = 1;
 				}
+			});
+			ABPInst.btnFont.addEventListener("click", function(e) {
+				this.parentNode.classList.toggle("on");
+			});
+			ABPInst.btnColor.addEventListener("click", function(e) {
+				this.parentNode.classList.toggle("on");
 			});
 			var fullscreenChangeHandler = function() {
 				if (!document.isFullScreen() && hasClass(playerUnit, "ABP-FullScreen")) {
@@ -1018,6 +1051,53 @@ var ABP = {
 					this.className = "button ABP-Loop icon-loop";
 					this.tooltip("洗脑循环 off");
 				}
+			});
+
+			function pad(number, length) {
+				length = length || 2;
+				var str = '' + number;
+				while (str.length < length) {
+					str = '0' + str;
+				}
+				return str;
+			}
+
+			ABPInst.btnSend.addEventListener("click", function() {
+				var date = new Date();
+				if (ABPInst.txtText.value == "" || ABPInst.txtText.disabled) return false;
+				ABPInst.playerUnit.dispatchEvent(new CustomEvent("sendcomment", {
+					"detail": {
+						"message": ABPInst.txtText.value,
+						"fontsize": ABPInst.commentFontSize,
+						"color": parseInt("0x" + ABPInst.commentColor),
+						"date": date.getFullYear() + "-" + pad(date.getMonth()) + "-" + pad(date.getDay()) +
+							" " + pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds()),
+						"playTime": ABPInst.video.currentTime,
+						"mode": ABPInst.commentMode,
+						"pool": 0
+					}
+				}));
+				ABPInst.cmManager.sendComment({
+					"text": ABPInst.txtText.value,
+					"mode": ABPInst.commentMode,
+					"stime": ABPInst.video.currentTime,
+					"size": ABPInst.commentFontSize,
+					"color": parseInt("0x" + ABPInst.commentColor),
+					"border": true
+				});
+				ABPInst.commentList["" + date.getTime() + Math.random()] = {
+					"date": parseInt(date.getTime() / 1000),
+					"time": ABPInst.video.currentTime,
+					"mode": ABPInst.commentMode,
+					"user": "-",
+					"pool": 0,
+					"content": ABPInst.txtText.value
+				}
+				ABPInst.txtText.value = "";
+				ABPInst.txtText.disabled = true;
+				setTimeout(function() {
+					ABPInst.txtText.disabled = false;
+				}, ABPInst.commentCoolDown);
 			});
 			ABPInst.timeLabel.addEventListener("click", function() {
 				ABPInst.timeJump = _("input", {
@@ -1156,7 +1236,7 @@ var ABP = {
 				}
 			});
 			playerUnit.addEventListener("keydown", function(e) {
-				if (e && document.activeElement !== ABPInst.txtText && document.activeElement !== ABPInst.timeJump) {
+				if (e && document.activeElement.tagName != "INPUT") {
 					e.preventDefault();
 					switch (e.keyCode) {
 						case 32:
@@ -1236,7 +1316,7 @@ var ABP = {
 				}
 			});
 			playerUnit.addEventListener("mouseup", function() {
-				if (document.activeElement != ABPInst.txtText && document.activeElement != ABPInst.timeJump) {
+				if (document.activeElement.tagName != "INPUT") {
 					var oSY = window.scrollY;
 					ABPInst.videoDiv.focus();
 					window.scrollTo(window.scrollX, oSY);
