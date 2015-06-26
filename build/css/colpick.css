@@ -87,7 +87,7 @@ colpick Color Picker / colpick.com
 	width: 19px;
 	height: 156px;
 	border: 1px solid #aaa;
-	cursor: ns-resize n-resize;
+	cursor: ns-resize;
 }
 /*Hue bar sliding indicator*/
 .colpick_hue_arrs {
@@ -219,7 +219,7 @@ colpick Color Picker / colpick.com
 	right: 0;
 	width: 9px;
 	height: 21px;
-	cursor: ns-resize n-resize;
+	cursor: ns-resize;
 }
 .colpick_field_uarr {
 	position: absolute;

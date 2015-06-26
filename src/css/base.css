@@ -383,6 +383,7 @@
   pointer-events: none;
   z-index: 1;
   opacity: 0;
+  cursor: auto;
 }
 
 .ABP-Unit .ABP-CommentStyle .ABP-Comment-ColorGroup.on .ABP-Comment-ColorOption,
