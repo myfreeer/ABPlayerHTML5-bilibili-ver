@@ -6,7 +6,7 @@ that uses CommentCoreLibrary as a backing implementation.
 
 ## Bilibili Ver
 
-This repository is forked from the original one, aiming at stylizing and optimizing the ABPlayerHTML5 for [Bilibili Helper](https://github.com/zhuogu/Bilibili-Helper).
+This repository is forked from the original one, aiming at stylizing and optimizing the ABPlayerHTML5 for [Bilibili Helper](https://github.com/zhuogu/Bilibili-Helper). This fork ONLY gurentees compatibility with Chrome.
 
 ### Demo
 Feel free to try out our [demo](http://zhuogu.github.io/ABPlayerHTML5-bilibili-ver/build/demo.html).
@@ -50,7 +50,7 @@ ABPlayerHTML5是一个ABPlayer的子项目。通过把ABPlayer的核心弹幕类
 
 ## Bilibili 版本
 
-此存储库分叉自原版本，致力于针对 Bilibili 风格化并优化 ABPlayerHTML5 播放器。
+此存储库分叉自原版本，致力于针对 [Bilibili Helper](https://github.com/zhuogu/Bilibili-Helper) 风格化并优化 ABPlayerHTML5 播放器。本分叉尽保证在 Chrome 浏览器的下的兼容。
 
 ### 测试
 如果你对项目的效果感兴趣，请[戳这里](http://zhuogu.github.io/ABPlayerHTML5-bilibili-ver/build/demo.html)来观
