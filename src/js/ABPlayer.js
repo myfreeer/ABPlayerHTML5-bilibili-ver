@@ -413,6 +413,20 @@ var ABP = {
 				"className": "ABP-CommentOption"
 			}, [_("p", {
 				"className": "label"
+			}, [_("text", "弹幕比例")]), _("div", {
+				"className": "scale-bar"
+			}, [
+				_("div", {
+					"className": "bar"
+				}, [
+					_("div", {
+						"className": "load"
+					})
+				]),
+			]), _("div", {
+				"className": "prop-checkbox"
+			}), _("p", {
+				"className": "label"
 			}, [_("text", "弹幕不透明度")]), _("div", {
 				"className": "opacity-bar"
 			}, [
@@ -499,6 +513,8 @@ var ABP = {
 			barVolumeHitArea: null,
 			barOpacity: null,
 			barOpacityHitArea: null,
+			barScale: null,
+			barScaleHitArea: null,
 			btnFont: null,
 			btnColor: null,
 			btnSend: null,
@@ -511,6 +527,7 @@ var ABP = {
 			btnWebFull: null,
 			btnDm: null,
 			btnLoop: null,
+			btnProp: null,
 			videoDiv: null,
 			btnVolume: null,
 			video: null,
@@ -524,7 +541,7 @@ var ABP = {
 			commentListContainer: null,
 			lastSelectedComment: null,
 			commentCoolDown: 10000,
-			commentScale: 0.9,
+			commentScale: 1,
 			defaults: {
 				w: 0,
 				h: 0
@@ -636,6 +653,15 @@ var ABP = {
 				}
 				ABPInst.commentListContainer.parentElement.scrollTop = offset;
 			},
+			commentCallback: function(data) {
+				if (data.result) {
+					ABPInst.commentList[data.id] = ABPInst.commentList[data.tmp_id];
+					delete ABPInst.commentList[data.tmp_id];
+				} else {
+					delete ABPInst.commentList[data.tmp_id];
+					ABPInst.createPopup(data.error, 5000);
+				}
+			},
 			swapVideo: null
 		};
 		ABPInst.swapVideo = function(video) {
@@ -677,7 +703,6 @@ var ABP = {
 			video.isBound = true;
 			var lastPosition = 0;
 			if (ABPInst.cmManager) {
-				ABPInst.cmManager.options.scrollScale = 1.3;
 				ABPInst.cmManager.options.opacity = 0.8;
 				ABPInst.cmManager.addEventListener("load", function() {
 					ABPInst.commentList = {};
@@ -705,16 +730,15 @@ var ABP = {
 					}
 					var actualWidth = ABPInst.videoDiv.offsetWidth,
 						actualHeight = ABPInst.videoDiv.offsetHeight,
-						scale = actualHeight / 438 * ABPInst.commentScale;
+						scale = ABPInst.proportionalScale ? actualHeight / 457 * ABPInst.commentScale : ABPInst.commentScale;
 					this.width = actualWidth / scale;
-					this.height = 438 / ABPInst.commentScale;
+					this.height = actualHeight / scale;
 					this.dispatchEvent("resize");
 					for (var a in this.csa) this.csa[a].setBounds(this.width, this.height);
-					this.stage.style.width = actualWidth / scale + "px";
-					this.stage.style.height = 438 / ABPInst.commentScale + "px";
+					this.stage.style.width = this.width + "px";
+					this.stage.style.height = this.height + "px";
 					this.stage.style.perspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
 					this.stage.style.webkitPerspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
-					//this.stage.style.transform = "scale(" + scale + ")";
 					this.stage.style.zoom = scale;
 				}
 				ABPInst.cmManager.setBounds();
@@ -822,6 +846,18 @@ var ABP = {
 		var obar = obar[0].getElementsByClassName("bar");
 		ABPInst.barOpacityHitArea = obar[0];
 		ABPInst.barOpacity = obar[0].getElementsByClassName("load")[0];
+		/** Bind the Scale Bar **/
+		var sbar = playerUnit.getElementsByClassName("scale-bar");
+		if (sbar.length <= 0) return;
+		var sbar = sbar[0].getElementsByClassName("bar");
+		ABPInst.barScaleHitArea = sbar[0];
+		ABPInst.barScale = sbar[0].getElementsByClassName("load")[0];
+		/** Bind the Proportional Scale checkbox **/
+		var pcheck = playerUnit.getElementsByClassName("prop-checkbox");
+		if (pcheck.length <= 0) return;
+		ABPInst.btnProp = pcheck[0];
+		ABPInst.btnProp.tooltip("全屏同步大小");
+		hoverTooltip(ABPInst.btnProp);
 		/** Bind the FullScreen button **/
 		var fbtn = playerUnit.getElementsByClassName("ABP-FullScreen");
 		if (fbtn.length <= 0) return;
@@ -966,6 +1002,14 @@ var ABP = {
 			ABPInst.btnColor.addEventListener("click", function(e) {
 				this.parentNode.classList.toggle("on");
 			});
+			if (ABPInst.proportionalScale) {
+				ABPInst.btnProp.classList.add("on");
+			}
+			ABPInst.btnProp.addEventListener("click", function(e) {
+				this.classList.toggle("on");
+				ABPInst.proportionalScale = this.classList.contains("on");
+				ABPInst.cmManager.setBounds();
+			});
 			var fullscreenChangeHandler = function() {
 				if (!document.isFullScreen() && hasClass(playerUnit, "ABP-FullScreen")) {
 					removeClass(playerUnit, "ABP-FullScreen");
@@ -1091,11 +1135,11 @@ var ABP = {
 				setTimeout(function() {
 					ABPInst.txtText.disabled = false;
 				}, ABPInst.commentCoolDown);
+				console.log(ABPInst.cmManager);
 			};
 
 			ABPInst.txtText.addEventListener("keyup", function(e) {
 				if (e.keyCode == 13) {
-					ABPInst.createPopup("发送弹幕 -" + e.which, 100000);
 					sendComment();
 				}
 			});
@@ -1227,6 +1271,38 @@ var ABP = {
 				}
 			});
 			hoverTooltip(ABPInst.barOpacityHitArea, true, -6);
+			var draggingScale = false;
+			ABPInst.barScaleHitArea.addEventListener("mousedown", function(e) {
+				draggingScale = true;
+			});
+			ABPInst.barScale.style.width = (ABPInst.commentScale - 0.2) / 4.8 * 100 + "%";
+			var updateScale = function(scale) {
+				ABPInst.barScale.style.width = (scale - 0.2) / 4.8 * 100 + "%";
+				ABPInst.barScaleHitArea.tooltip(parseInt(scale * 100) + "%");
+				ABPInst.cmManager.setBounds();
+			}
+			document.addEventListener("mouseup", function(e) {
+				if (draggingScale) {
+					var newScale = 0.2 + 4.8 * (e.clientX - ABPInst.barScaleHitArea.getBoundingClientRect().left) / ABPInst.barScaleHitArea.offsetWidth;
+					if (newScale < 0.2) newScale = 0.2;
+					if (newScale > 5) newScale = 5;
+					ABPInst.commentScale = newScale;
+					updateScale(ABPInst.commentScale);
+				}
+				draggingScale = false;
+			});
+			document.addEventListener("mousemove", function(e) {
+				var newScale = 0.2 + 4.8 * (e.clientX - ABPInst.barScaleHitArea.getBoundingClientRect().left) / ABPInst.barScaleHitArea.offsetWidth;
+				if (newScale < 0.2) newScale = 0.2;
+				if (newScale > 5) newScale = 5;
+				if (draggingScale) {
+					ABPInst.commentScale = newScale;
+					updateScale(ABPInst.commentScale);
+				} else {
+					ABPInst.barScaleHitArea.tooltip(parseInt(newScale * 100) + "%");
+				}
+			});
+			hoverTooltip(ABPInst.barScaleHitArea, true, -6);
 			ABPInst.btnPlay.addEventListener("click", function() {
 				if (ABPInst.video.paused) {
 					ABPInst.video.play();
