@@ -1,7 +1,7 @@
 module.exports = (grunt) ->
   require('load-grunt-tasks') grunt
   grunt.file.readJSON('package.json')
-  
+
   CORE_PATH = 'node_modules/comment-core-library/build'
   CORE_FILES = [
     'CommentCoreLibrary.min.js'
@@ -22,7 +22,7 @@ module.exports = (grunt) ->
           {expand: true, cwd:'src/', src: ['*.html', '*.xml'],  dest:'build/'}
           {expand: true, cwd:'src/demos', src: ['*/*'],  dest:'build/demos/'}
         ]
-    
+
     # Auto-prefix CSS properties using Can I Use?
     autoprefixer:
       options:
@@ -47,4 +47,3 @@ module.exports = (grunt) ->
   # Register our tasks
   grunt.registerTask 'dist', ['copy', 'uglify', 'autoprefixer', 'cssmin']
   grunt.registerTask 'default', ['dist']
-

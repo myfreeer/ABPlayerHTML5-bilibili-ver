@@ -431,7 +431,7 @@
   box-shadow: none;
 }
 
-.ABP-Unit .ABP-Text input.ABP-Comment-Input[disabled] + .ABP-Unit .ABP-Text .ABP-Comment-Send {
+.ABP-Unit .ABP-Text input.ABP-Comment-Input[disabled] + .ABP-Comment-Send {
   background-color: #0085b3;
   opacity: .3;
 }

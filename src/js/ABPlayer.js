@@ -6,7 +6,6 @@ var ABP = {
 	"use strict";
 	if (!ABP) return;
 	var $$ = jQuery;
-	jQuery.noConflict();
 	var $ = function(e) {
 		return document.getElementById(e);
 	};
