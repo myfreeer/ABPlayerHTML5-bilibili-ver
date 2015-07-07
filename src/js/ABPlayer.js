@@ -230,7 +230,7 @@ var ABP = {
 		if (!params) {
 			params = {};
 		}
-		ABP.playerConfig = ABP.playerConfig ? params.config : {};
+		ABP.playerConfig = params.config ? params.config : {};
 		params = buildFromDefaults(params, {
 			"replaceMode": true,
 			"width": 512,
