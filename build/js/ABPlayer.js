@@ -736,7 +736,7 @@ var ABP = {
 					}
 					var actualWidth = ABPInst.videoDiv.offsetWidth,
 						actualHeight = ABPInst.videoDiv.offsetHeight,
-						scale = ABPInst.proportionalScale ? actualHeight / 457 * ABPInst.commentScale : ABPInst.commentScale;
+						scale = ABPInst.proportionalScale ? actualHeight / 493 * ABPInst.commentScale : ABPInst.commentScale;
 					this.width = actualWidth / scale;
 					this.height = actualHeight / scale;
 					this.dispatchEvent("resize");
