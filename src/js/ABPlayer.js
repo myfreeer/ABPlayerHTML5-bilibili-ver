@@ -230,6 +230,7 @@ var ABP = {
 		if (!params) {
 			params = {};
 		}
+		ABP.playerConfig = ABP.playerConfig ? params.config : {};
 		params = buildFromDefaults(params, {
 			"replaceMode": true,
 			"width": 512,
@@ -472,12 +473,6 @@ var ABP = {
 			})])
 		]));
 		var bind = ABP.bind(container);
-		if (typeof params.config == "object") {
-			if (params.config.volume) bind.video.volume = params.config.volume;
-			if (params.config.opacity) bind.cmManager.options.opacity = params.config.opacity;
-			if (params.config.sacle) bind.commentScale = params.config.scale;
-			if (params.config.prop) bind.proportionalScale = params.config.prop;
-		}
 		if (playlist.length > 0) {
 			var currentVideo = playlist[0];
 			bind.gotoNext = function() {
@@ -546,8 +541,8 @@ var ABP = {
 			commentListContainer: null,
 			lastSelectedComment: null,
 			commentCoolDown: 10000,
-			commentScale: 1,
-			proportionalScale: true,
+			commentScale: ABP.playerConfig.scale ? ABP.playerConfig.scale : 1,
+			proportionalScale: ABP.playerConfig.prop,
 			defaults: {
 				w: 0,
 				h: 0
@@ -709,7 +704,6 @@ var ABP = {
 			video.isBound = true;
 			var lastPosition = 0;
 			if (ABPInst.cmManager) {
-				ABPInst.cmManager.options.opacity = 0.8;
 				ABPInst.cmManager.addEventListener("load", function() {
 					ABPInst.commentList = {};
 					for (i in ABPInst.cmManager.timeline) {
@@ -862,7 +856,7 @@ var ABP = {
 		var pcheck = playerUnit.getElementsByClassName("prop-checkbox");
 		if (pcheck.length <= 0) return;
 		ABPInst.btnProp = pcheck[0];
-		ABPInst.btnProp.tooltip("全屏同步大小");
+		ABPInst.btnProp.tooltip("缩放同步");
 		hoverTooltip(ABPInst.btnProp);
 		/** Bind the FullScreen button **/
 		var fbtn = playerUnit.getElementsByClassName("ABP-FullScreen");
@@ -940,6 +934,10 @@ var ABP = {
 					ABPInst.cmManager.setBounds();
 				});
 			}
+		}
+		if (typeof ABP.playerConfig == "object") {
+			if (ABP.playerConfig.volume) ABPInst.video.volume = ABP.playerConfig.volume;
+			if (ABP.playerConfig.opacity) ABPInst.cmManager.options.opacity = ABP.playerConfig.opacity;
 		}
 		$$('.ABP-Comment-List-Title *').click(function() {
 			var item = $$(this).attr('item'),
@@ -1142,7 +1140,7 @@ var ABP = {
 				});
 				ABPInst.commentList[commentId] = {
 					"date": parseInt(date.getTime() / 1000),
-					"time": ABPInst.video.currentTime,
+					"time": ABPInst.video.currentTime * 1000,
 					"mode": ABPInst.commentMode,
 					"user": "-",
 					"pool": 0,
