@@ -473,6 +473,12 @@ var ABP = {
 			})])
 		]));
 		var bind = ABP.bind(container);
+		if (typeof params.config == "object") {
+			if (params.config.volume) bind.video.volume = params.config.volume;
+			if (params.config.opacity) bind.cmManager.options.opacity = params.config.opacity;
+			if (params.config.sacle) bind.commentScale = params.config.scale;
+			if (params.config.prop) bind.proportionalScale = params.config.prop;
+		}
 		if (playlist.length > 0) {
 			var currentVideo = playlist[0];
 			bind.gotoNext = function() {
@@ -542,6 +548,7 @@ var ABP = {
 			lastSelectedComment: null,
 			commentCoolDown: 10000,
 			commentScale: 1,
+			proportionalScale: true,
 			defaults: {
 				w: 0,
 				h: 0
@@ -1009,6 +1016,7 @@ var ABP = {
 				this.classList.toggle("on");
 				ABPInst.proportionalScale = this.classList.contains("on");
 				ABPInst.cmManager.setBounds();
+				saveConfigurations();
 			});
 			var fullscreenChangeHandler = function() {
 				if (!document.isFullScreen() && hasClass(playerUnit, "ABP-FullScreen")) {
@@ -1097,6 +1105,17 @@ var ABP = {
 				}
 			});
 
+			var saveConfigurations = function() {
+				ABPInst.playerUnit.dispatchEvent(new CustomEvent("saveconfig", {
+					"detail": {
+						"volume": ABPInst.video.volume,
+						"opacity": ABPInst.cmManager.options.opacity,
+						"scale": ABPInst.commentScale,
+						"prop": ABPInst.proportionalScale
+					}
+				}));
+			}
+
 			var sendComment = function() {
 				var date = new Date(),
 					commentId = "" + date.getTime() + Math.random();
@@ -1135,7 +1154,6 @@ var ABP = {
 				setTimeout(function() {
 					ABPInst.txtText.disabled = false;
 				}, ABPInst.commentCoolDown);
-				console.log(ABPInst.cmManager);
 			};
 
 			ABPInst.txtText.addEventListener("keyup", function(e) {
@@ -1217,6 +1235,7 @@ var ABP = {
 				else ABPInst.btnVolume.className += "high";
 				ABPInst.btnVolume.tooltip("静音");
 				ABPInst.barVolumeHitArea.tooltip(parseInt(volume * 100) + "%");
+				saveConfigurations();
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingVolume) {
@@ -1248,6 +1267,7 @@ var ABP = {
 			var updateOpacity = function(opacity) {
 				ABPInst.barOpacity.style.width = (opacity * 100) + "%";
 				ABPInst.barOpacityHitArea.tooltip(parseInt(opacity * 100) + "%");
+				saveConfigurations();
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingOpacity) {
@@ -1280,6 +1300,7 @@ var ABP = {
 				ABPInst.barScale.style.width = (scale - 0.2) / 4.8 * 100 + "%";
 				ABPInst.barScaleHitArea.tooltip(parseInt(scale * 100) + "%");
 				ABPInst.cmManager.setBounds();
+				saveConfigurations();
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingScale) {

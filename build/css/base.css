@@ -358,7 +358,7 @@
   line-height: 30px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentFontSize"] .style-option[value="18"]::after {  
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentFontSize"] .style-option[value="18"]::after {
   content: "A";
   font-size: 18px;
 }
@@ -374,11 +374,11 @@
   line-height: 8px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="5"]::after {  
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="5"]::after {
   top: 4px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="1"]::after {  
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="1"]::after {
   white-space: pre;
   content: "\25c0 \258a\258a\258a        \A        \25c0 \258a\258a\258a";
   font-size: 6px;
@@ -386,7 +386,7 @@
   top: 6px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="4"]::after {  
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="4"]::after {
   top: 16px;
 }
 
@@ -438,6 +438,17 @@
 .ABP-Unit .ABP-Text input.ABP-Comment-Input:focus{
   -webkit-box-shadow: inset 0 5px 5px rgba(0,0,0,.1);
           box-shadow: inset 0 5px 5px rgba(0,0,0,.1);
+}
+
+.ABP-Unit .ABP-Text input.ABP-Comment-Input[disabled] {
+  background-color: #ddd;
+  -webkit-box-shadow: none;
+          box-shadow: none;
+}
+
+.ABP-Unit .ABP-Text input.ABP-Comment-Input[disabled] + .ABP-Unit .ABP-Text .ABP-Comment-Send {
+  background-color: #0085b3;
+  opacity: .3;
 }
 
 .ABP-Unit .ABP-Text .ABP-Comment-Send {
