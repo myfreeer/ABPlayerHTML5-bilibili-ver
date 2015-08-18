@@ -17,7 +17,6 @@
   text-transform: none;
   line-height: 1;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 .icon-font-style:before {
   content: "\e60a";
@@ -86,7 +85,7 @@
   width:auto !important;
   height:auto !important;
   position:fixed;
-  z-index:9999;
+  z-index:10011;
 }
 
 .ABP-Unit .ABP-Player {
@@ -100,13 +99,21 @@
   width: 100%;
 }
 
-.ABP-Unit .ABP-Video{
+.ABP-Unit .ABP-Video {
   position:absolute;
   overflow:hidden;
   top:0;left:0;right:0;bottom:43px;
   background:#000;
   outline: none;
   cursor: pointer;
+}
+
+.ABP-Unit .ABP-Video.ABP-HideCursor {
+  cursor: none;
+}
+
+.ABP-Unit.ABP-FullScreen .ABP-Video {
+  bottom: 0;
 }
 
 .ABP-Unit.ABP-Mini .ABP-Video {
@@ -136,36 +143,53 @@
   right: 0;
   touch-callout: none;
   -webkit-user-select: none;
-     -moz-user-select: none;
-      -ms-user-select: none;
-          user-select: none;
 }
 
 .ABP-Unit .ABP-Video .ABP-Container .cmt{
   -webkit-transform: matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
           transform: matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1);
   position: absolute;
-  padding: 3px 0 0 0;
-  margin: 0;
+  margin-top: 3px;
   color: #fff;
-  font-family: SimHei, SimSun, Heiti, "MS Mincho", "Meiryo", "Microsoft YaHei", monospace;
+  font-family: "Helvetica Neue", Helvetica, "Nimbus Sans L", Arial, "Liberation Sans", "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", "Source Han Sans SC", "Microsoft YaHei", "Wenquanyi Micro Hei", "WenQuanYi Zen Hei", "ST Heiti", SimHei, "WenQuanYi Zen Hei Sharp", sans-serif;
   font-size: 25px;
   font-weight: 600;
   text-decoration: none;
-  text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
   -webkit-text-size-adjust: none;
-      -ms-text-size-adjust: none;
-          text-size-adjust: none;
   line-height: 100%;
   letter-spacing: 0;
   word-break: keep-all;
   white-space: pre;
 }
-.ABP-Unit .ABP-Video .ABP-Container .cmt.noshadow{
-  text-shadow: none;
+.ABP-Unit .ABP-Video .ABP-Container .cmt::after {
+  content:attr(content);
+  display: inline-block;
+  position:absolute;
+  left: 0;
+  vertical-align:middle;
+  color: black;
+  -webkit-text-stroke: 2px black;
+  z-index: -1;
 }
-.ABP-Unit .ABP-Video .ABP-Container .cmt.rshadow{
-  text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
+.ABP-Unit .ABP-Video .ABP-Container .cmt.noshadow::after {
+  content: "";
+  display: none;
+}
+.ABP-Unit .ABP-Video .ABP-Container .cmt.rshadow::after {
+  -webkit-text-stroke: 1px white;
+}
+
+.ABP-Unit .ABP-Bottom {
+  -webkit-transition: opacity 0.1s linear;
+          transition: opacity 0.1s linear;
+}
+
+.ABP-Unit.ABP-FullScreen .ABP-Bottom {
+  opacity: 0;
+}
+
+.ABP-Unit.ABP-FullScreen .ABP-Bottom:hover {
+  opacity: 1;
 }
 
 #ABP-Tooltip {
@@ -182,9 +206,6 @@
           box-shadow: 0 3px 6px rgba(0,0,0,.4);
   pointer-events: none;
   -webkit-user-select: none;
-     -moz-user-select: none;
-      -ms-user-select: none;
-          user-select: none;
 }
 
 .ABP-Unit .ABP-Text{
@@ -341,7 +362,7 @@
   line-height: 30px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentFontSize"] .style-option[value="18"]::after {  
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentFontSize"] .style-option[value="18"]::after {
   content: "A";
   font-size: 18px;
 }
@@ -352,24 +373,24 @@
 }
 
 .ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option::after {
-  content: "▊▊▊";
+  content: "\258a\258a\258a";
   font-size: 6px;
   line-height: 8px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="5"]::after {  
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="5"]::after {
   top: 4px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="1"]::after {  
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="1"]::after {
   white-space: pre;
-  content: "◀ ▊▊▊        \A        ◀ ▊▊▊";
+  content: "\25c0 \258a\258a\258a        \A        \25c0 \258a\258a\258a";
   font-size: 6px;
   line-height: 8px;
   top: 6px;
 }
 
-.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="4"]::after {  
+.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-select[name="commentMode"] .style-option[value="4"]::after {
   top: 16px;
 }
 
@@ -423,6 +444,17 @@
           box-shadow: inset 0 5px 5px rgba(0,0,0,.1);
 }
 
+.ABP-Unit .ABP-Text input.ABP-Comment-Input[disabled] {
+  background-color: #ddd;
+  -webkit-box-shadow: none;
+          box-shadow: none;
+}
+
+.ABP-Unit .ABP-Text input.ABP-Comment-Input[disabled] + .ABP-Comment-Send {
+  background-color: #0085b3;
+  opacity: .3;
+}
+
 .ABP-Unit .ABP-Text .ABP-Comment-Send {
   position: absolute;
   color: #fff;
@@ -456,11 +488,7 @@
   background:#fff;
   border:1px solid #ececec;
   height: 20px;
-  -moz-user-select: -moz-none;
-    -khtml-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
-      user-select: none;
+  -webkit-user-select: none;
   font-size: 14px;
 }
 
@@ -486,7 +514,7 @@
 
 .ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption {
   width: 120px;
-  height: 40px;
+  height: 70px;
   padding: 10px;
   background: rgba(255,255,255,.9);
   position: absolute;
@@ -509,12 +537,55 @@
   font-size: 12px;
 }
 
-.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .opacity-bar {
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .opacity-bar,
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .scale-bar {
   position: relative;
+  height: 10px;
+  margin-bottom: 8px;
 }
 
-.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .opacity-bar .bar {
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .scale-bar {
+  width: 90px;
+}
+
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .prop-checkbox {
+  position: absolute;
+  top: 18px;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background-color: #ccc;
+  border: solid 2px #949494;
+  cursor: pointer;
+  -webkit-transition: all 0.1s ease-in-out;
+          transition: all 0.1s ease-in-out;
+}
+
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .prop-checkbox:hover {
+  background-color: #ddd;
+}
+
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .prop-checkbox.on {
+  border-color: #00a0d8;
+  background-color: #ddd;
+}
+
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .prop-checkbox.on::after {
+  content: "";
+  background-color: #00a0d8;
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  border-radius: 2px;
+  width: 12px;
+  height: 12px;
+}
+
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .opacity-bar .bar,
+.ABP-Unit .ABP-Control .ABP-CommentGroup .ABP-CommentOption .scale-bar .bar {
   width: 100%;
+  top: 2px;
   left: 0;
 }
 
@@ -618,6 +689,7 @@
     background-color: rgba(255,255,255,0);
     position: absolute;
     top: -6px;
+    left: 0;
 }
 
 .ABP-Unit .ABP-Control .bar .load, .ABP-Unit .ABP-Control .bar .dark {
@@ -663,10 +735,10 @@
 }
 
 .ABP-Unit .ABP-Control .time-label {
-  width: 80px;
+  width: 86px;
   font-size: 11px;
   position: absolute;
-  right: 187px;
+  right: 184px;
   text-align: center;
   line-height: 22px;
   height: 20px;
@@ -700,12 +772,14 @@
 
 .ABP-Unit .ABP-Popup{
   position:absolute;
-  background:#000;
-  border:1px solid #33b5e5;
-  left:10px;
-  padding:5px;
-  bottom:82px;
-  opacity:0.8;
+  background: rgba(255,255,255,.9);
+  color: #666;
+  font-weight: bold;
+  font-size: 12px;
+  border-radius: 5px;
+  left: 10px;
+  padding: 5px 10px;
+  bottom: 52px;
 }
 
 .ABP-Unit .ABP-Comment-List {

@@ -6,7 +6,6 @@ var ABP = {
 	"use strict";
 	if (!ABP) return;
 	var $$ = jQuery;
-	jQuery.noConflict();
 	var $ = function(e) {
 		return document.getElementById(e);
 	};
@@ -93,19 +92,20 @@ var ABP = {
 		}
 	}
 
+	var pad = function(number, length) {
+		length = length || 2;
+		var str = '' + number;
+		while (str.length < length) {
+			str = '0' + str;
+		}
+		return str;
+	}
+
 	var htmlEscape = function(text) {
 		return text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 	}
 
 	var formatInt = function(source, length) {
-		var strTemp = "";
-		for (var i = 1; i <= length - (source + "").length; i++) {
-			strTemp += "0";
-		}
-		return strTemp + source;
-	}
-
-	var formatTime = function(source, length) {
 		var strTemp = "";
 		for (var i = 1; i <= length - (source + "").length; i++) {
 			strTemp += "0";
@@ -135,6 +135,7 @@ var ABP = {
 	}
 
 	var formatTime = function(time) {
+		if (isNaN(time)) return '00:00';
 		return formatInt(parseInt(time / 60), 2) + ':' + formatInt(parseInt(time % 60), 2);
 	}
 
@@ -229,6 +230,7 @@ var ABP = {
 		if (!params) {
 			params = {};
 		}
+		ABP.playerConfig = params.config ? params.config : {};
 		params = buildFromDefaults(params, {
 			"replaceMode": true,
 			"width": 512,
@@ -286,8 +288,7 @@ var ABP = {
 					}, sources));
 				} else if (plist[id].hasOwnProperty("video")) {
 					playlist.push(plist[id]["video"]);
-				} else {
-				}
+				} else {}
 				danmaku.push(plist[id]["comments"]);
 			}
 		} else {
@@ -412,6 +413,20 @@ var ABP = {
 				"className": "ABP-CommentOption"
 			}, [_("p", {
 				"className": "label"
+			}, [_("text", "弹幕比例")]), _("div", {
+				"className": "scale-bar"
+			}, [
+				_("div", {
+					"className": "bar"
+				}, [
+					_("div", {
+						"className": "load"
+					})
+				]),
+			]), _("div", {
+				"className": "prop-checkbox"
+			}), _("p", {
+				"className": "label"
 			}, [_("text", "弹幕不透明度")]), _("div", {
 				"className": "opacity-bar"
 			}, [
@@ -498,6 +513,8 @@ var ABP = {
 			barVolumeHitArea: null,
 			barOpacity: null,
 			barOpacityHitArea: null,
+			barScale: null,
+			barScaleHitArea: null,
 			btnFont: null,
 			btnColor: null,
 			btnSend: null,
@@ -510,6 +527,7 @@ var ABP = {
 			btnWebFull: null,
 			btnDm: null,
 			btnLoop: null,
+			btnProp: null,
 			videoDiv: null,
 			btnVolume: null,
 			video: null,
@@ -522,8 +540,9 @@ var ABP = {
 			commentList: null,
 			commentListContainer: null,
 			lastSelectedComment: null,
-			commentCoolDown: 0,
-			commentScale: 0.9,
+			commentCoolDown: 10000,
+			commentScale: ABP.playerConfig.scale ? ABP.playerConfig.scale : 1,
+			proportionalScale: ABP.playerConfig.prop,
 			defaults: {
 				w: 0,
 				h: 0
@@ -635,6 +654,15 @@ var ABP = {
 				}
 				ABPInst.commentListContainer.parentElement.scrollTop = offset;
 			},
+			commentCallback: function(data) {
+				if (data.result) {
+					ABPInst.commentList[data.id] = ABPInst.commentList[data.tmp_id];
+					delete ABPInst.commentList[data.tmp_id];
+				} else {
+					delete ABPInst.commentList[data.tmp_id];
+					ABPInst.createPopup(data.error, 5000);
+				}
+			},
 			swapVideo: null
 		};
 		ABPInst.swapVideo = function(video) {
@@ -676,8 +704,6 @@ var ABP = {
 			video.isBound = true;
 			var lastPosition = 0;
 			if (ABPInst.cmManager) {
-				ABPInst.cmManager.options.scrollScale = 1.3;
-				ABPInst.cmManager.options.opacity = 0.8;
 				ABPInst.cmManager.addEventListener("load", function() {
 					ABPInst.commentList = {};
 					for (i in ABPInst.cmManager.timeline) {
@@ -704,16 +730,16 @@ var ABP = {
 					}
 					var actualWidth = ABPInst.videoDiv.offsetWidth,
 						actualHeight = ABPInst.videoDiv.offsetHeight,
-						scale = actualHeight / 438 * ABPInst.commentScale;
+						scale = ABPInst.proportionalScale ? actualHeight / 493 * ABPInst.commentScale : ABPInst.commentScale;
 					this.width = actualWidth / scale;
-					this.height = 438 / ABPInst.commentScale;
+					this.height = actualHeight / scale;
+					this.options.global.scale = this.width / 680;
 					this.dispatchEvent("resize");
 					for (var a in this.csa) this.csa[a].setBounds(this.width, this.height);
-					this.stage.style.width = actualWidth / scale + "px";
-					this.stage.style.height = 438 / ABPInst.commentScale + "px";
+					this.stage.style.width = this.width + "px";
+					this.stage.style.height = this.height + "px";
 					this.stage.style.perspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
 					this.stage.style.webkitPerspective = this.width * Math.tan(40 * Math.PI / 180) / 2 + "px";
-					//this.stage.style.transform = "scale(" + scale + ")";
 					this.stage.style.zoom = scale;
 				}
 				ABPInst.cmManager.setBounds();
@@ -749,21 +775,24 @@ var ABP = {
 					} catch (err) {}
 				});
 				video.addEventListener("ratechange", function() {
-					if (ABPInst.cmManager.options.globalScale != null) {
+					if (ABPInst.cmManager.options.global.scale != null) {
 						if (video.playbackRate !== 0) {
-							ABPInst.cmManager.options.globalScale = (1 / video.playbackRate);
+							ABPInst.cmManager.options.global.scale = (1 / video.playbackRate);
 							ABPInst.cmManager.rescale();
 						}
 					}
 				});
 				video.addEventListener("pause", function() {
 					ABPInst.cmManager.stopTimer();
+					ABPInst.cmManager.pauseComment();
 				});
 				video.addEventListener("waiting", function() {
 					ABPInst.cmManager.stopTimer();
+					ABPInst.cmManager.pauseComment();
 				});
 				video.addEventListener("playing", function() {
 					ABPInst.cmManager.startTimer();
+					ABPInst.cmManager.resumeComment();
 				});
 			}
 		}
@@ -821,6 +850,18 @@ var ABP = {
 		var obar = obar[0].getElementsByClassName("bar");
 		ABPInst.barOpacityHitArea = obar[0];
 		ABPInst.barOpacity = obar[0].getElementsByClassName("load")[0];
+		/** Bind the Scale Bar **/
+		var sbar = playerUnit.getElementsByClassName("scale-bar");
+		if (sbar.length <= 0) return;
+		var sbar = sbar[0].getElementsByClassName("bar");
+		ABPInst.barScaleHitArea = sbar[0];
+		ABPInst.barScale = sbar[0].getElementsByClassName("load")[0];
+		/** Bind the Proportional Scale checkbox **/
+		var pcheck = playerUnit.getElementsByClassName("prop-checkbox");
+		if (pcheck.length <= 0) return;
+		ABPInst.btnProp = pcheck[0];
+		ABPInst.btnProp.tooltip("缩放同步");
+		hoverTooltip(ABPInst.btnProp);
 		/** Bind the FullScreen button **/
 		var fbtn = playerUnit.getElementsByClassName("ABP-FullScreen");
 		if (fbtn.length <= 0) return;
@@ -898,13 +939,16 @@ var ABP = {
 				});
 			}
 		}
+		if (typeof ABP.playerConfig == "object") {
+			if (ABP.playerConfig.volume) ABPInst.video.volume = ABP.playerConfig.volume;
+			if (ABP.playerConfig.opacity) ABPInst.cmManager.options.opacity = ABP.playerConfig.opacity;
+		}
 		$$('.ABP-Comment-List-Title *').click(function() {
 			var item = $$(this).attr('item'),
 				order = $$(this).hasClass('asc') ? 'desc' : 'asc';
 			$$('.ABP-Comment-List-Title *').removeClass('asc').removeClass('desc');
 			$$(this).addClass(order);
 			ABPInst.loadCommentList(item, order);
-
 		});
 		$$('.ABP-Unit .ABP-CommentStyle .ABP-Comment-FontOption .style-option').click(function() {
 			$$(this).closest('.style-select').find('.style-option').removeClass('on');
@@ -925,6 +969,18 @@ var ABP = {
 			ABPInst.videoDiv.addEventListener("click", function(e) {
 				ABPInst.btnPlay.click();
 				e.preventDefault();
+			});
+			var hideCursorTimer = null;
+			ABPInst.videoDiv.addEventListener("mousemove", function() {
+				if (hideCursorTimer) {
+					window.clearTimeout(hideCursorTimer);
+				}
+				if (hasClass(ABPInst.videoDiv, "ABP-HideCursor")) {
+					removeClass(ABPInst.videoDiv, "ABP-HideCursor");
+				}
+				hideCursorTimer = window.setTimeout(function() {
+					addClass(ABPInst.videoDiv, "ABP-HideCursor");
+				}, 3000);
 			});
 			ABPInst.btnVolume.addEventListener("click", function() {
 				if (ABPInst.video.muted == false) {
@@ -966,6 +1022,15 @@ var ABP = {
 			ABPInst.btnColor.addEventListener("click", function(e) {
 				this.parentNode.classList.toggle("on");
 			});
+			if (ABPInst.proportionalScale) {
+				ABPInst.btnProp.classList.add("on");
+			}
+			ABPInst.btnProp.addEventListener("click", function(e) {
+				this.classList.toggle("on");
+				ABPInst.proportionalScale = this.classList.contains("on");
+				ABPInst.cmManager.setBounds();
+				saveConfigurations();
+			});
 			var fullscreenChangeHandler = function() {
 				if (!document.isFullScreen() && hasClass(playerUnit, "ABP-FullScreen")) {
 					removeClass(playerUnit, "ABP-FullScreen");
@@ -1002,6 +1067,7 @@ var ABP = {
 					ABPInst.cmManager.options.scrollScale = 1;
 				}
 			});
+
 			ABPInst.btnWide.addEventListener("click", function() {
 				ABPInst.state.widescreen = hasClass(playerUnit, "ABP-WideScreen");
 				if (!ABPInst.state.widescreen) {
@@ -1053,20 +1119,24 @@ var ABP = {
 				}
 			});
 
-			function pad(number, length) {
-				length = length || 2;
-				var str = '' + number;
-				while (str.length < length) {
-					str = '0' + str;
-				}
-				return str;
+			var saveConfigurations = function() {
+				ABPInst.playerUnit.dispatchEvent(new CustomEvent("saveconfig", {
+					"detail": {
+						"volume": ABPInst.video.volume,
+						"opacity": ABPInst.cmManager.options.opacity,
+						"scale": ABPInst.commentScale,
+						"prop": ABPInst.proportionalScale
+					}
+				}));
 			}
 
-			ABPInst.btnSend.addEventListener("click", function() {
-				var date = new Date();
+			var sendComment = function() {
+				var date = new Date(),
+					commentId = "" + date.getTime() + Math.random();
 				if (ABPInst.txtText.value == "" || ABPInst.txtText.disabled) return false;
 				ABPInst.playerUnit.dispatchEvent(new CustomEvent("sendcomment", {
 					"detail": {
+						"id": commentId,
 						"message": ABPInst.txtText.value,
 						"fontsize": ABPInst.commentFontSize,
 						"color": parseInt("0x" + ABPInst.commentColor),
@@ -1077,7 +1147,7 @@ var ABP = {
 						"pool": 0
 					}
 				}));
-				ABPInst.cmManager.sendComment({
+				ABPInst.cmManager.send({
 					"text": ABPInst.txtText.value,
 					"mode": ABPInst.commentMode,
 					"stime": ABPInst.video.currentTime,
@@ -1085,9 +1155,9 @@ var ABP = {
 					"color": parseInt("0x" + ABPInst.commentColor),
 					"border": true
 				});
-				ABPInst.commentList["" + date.getTime() + Math.random()] = {
+				ABPInst.commentList[commentId] = {
 					"date": parseInt(date.getTime() / 1000),
-					"time": ABPInst.video.currentTime,
+					"time": ABPInst.video.currentTime * 1000,
 					"mode": ABPInst.commentMode,
 					"user": "-",
 					"pool": 0,
@@ -1098,7 +1168,16 @@ var ABP = {
 				setTimeout(function() {
 					ABPInst.txtText.disabled = false;
 				}, ABPInst.commentCoolDown);
+			};
+
+			ABPInst.txtText.addEventListener("keyup", function(e) {
+				if (e.keyCode == 13) {
+					sendComment();
+				}
 			});
+
+			ABPInst.btnSend.addEventListener("click", sendComment);
+
 			ABPInst.timeLabel.addEventListener("click", function() {
 				ABPInst.timeJump = _("input", {
 					"className": "time-jump"
@@ -1170,6 +1249,7 @@ var ABP = {
 				else ABPInst.btnVolume.className += "high";
 				ABPInst.btnVolume.tooltip("静音");
 				ABPInst.barVolumeHitArea.tooltip(parseInt(volume * 100) + "%");
+				saveConfigurations();
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingVolume) {
@@ -1201,6 +1281,7 @@ var ABP = {
 			var updateOpacity = function(opacity) {
 				ABPInst.barOpacity.style.width = (opacity * 100) + "%";
 				ABPInst.barOpacityHitArea.tooltip(parseInt(opacity * 100) + "%");
+				saveConfigurations();
 			}
 			document.addEventListener("mouseup", function(e) {
 				if (draggingOpacity) {
@@ -1224,6 +1305,39 @@ var ABP = {
 				}
 			});
 			hoverTooltip(ABPInst.barOpacityHitArea, true, -6);
+			var draggingScale = false;
+			ABPInst.barScaleHitArea.addEventListener("mousedown", function(e) {
+				draggingScale = true;
+			});
+			ABPInst.barScale.style.width = (ABPInst.commentScale - 0.2) / 4.8 * 100 + "%";
+			var updateScale = function(scale) {
+				ABPInst.barScale.style.width = (scale - 0.2) / 4.8 * 100 + "%";
+				ABPInst.barScaleHitArea.tooltip(parseInt(scale * 100) + "%");
+				ABPInst.cmManager.setBounds();
+				saveConfigurations();
+			}
+			document.addEventListener("mouseup", function(e) {
+				if (draggingScale) {
+					var newScale = 0.2 + 4.8 * (e.clientX - ABPInst.barScaleHitArea.getBoundingClientRect().left) / ABPInst.barScaleHitArea.offsetWidth;
+					if (newScale < 0.2) newScale = 0.2;
+					if (newScale > 5) newScale = 5;
+					ABPInst.commentScale = newScale;
+					updateScale(ABPInst.commentScale);
+				}
+				draggingScale = false;
+			});
+			document.addEventListener("mousemove", function(e) {
+				var newScale = 0.2 + 4.8 * (e.clientX - ABPInst.barScaleHitArea.getBoundingClientRect().left) / ABPInst.barScaleHitArea.offsetWidth;
+				if (newScale < 0.2) newScale = 0.2;
+				if (newScale > 5) newScale = 5;
+				if (draggingScale) {
+					ABPInst.commentScale = newScale;
+					updateScale(ABPInst.commentScale);
+				} else {
+					ABPInst.barScaleHitArea.tooltip(parseInt(newScale * 100) + "%");
+				}
+			});
+			hoverTooltip(ABPInst.barScaleHitArea, true, -6);
 			ABPInst.btnPlay.addEventListener("click", function() {
 				if (ABPInst.video.paused) {
 					ABPInst.video.play();
@@ -1320,132 +1434,6 @@ var ABP = {
 					var oSY = window.scrollY;
 					ABPInst.videoDiv.focus();
 					window.scrollTo(window.scrollX, oSY);
-				}
-			});
-		}
-		/** Bind command interface **/
-		if (ABPInst.txtText !== null) {
-			ABPInst.txtText.addEventListener("keyup", function(k) {
-				if (this.value == null) return;
-				if (/^!/.test(this.value)) {
-					this.style.color = "#5DE534";
-				} else {
-					this.style.color = "";
-				}
-				if (k != null && k.keyCode === 13) {
-					if (this.value == "") return;
-					if (/^!/.test(this.value)) {
-						/** Execute command **/
-						var commandPrompts = this.value.substring(1).split(":");
-						var command = commandPrompts.shift();
-						switch (command) {
-							case "help":
-								{
-									var popup = ABPInst.createPopup("提示信息：", 2000);
-								}
-								break;
-							case "speed":
-							case "rate":
-							case "spd":
-								{
-									if (commandPrompts.length < 1) {
-										ABPInst.createPopup("速度调节：输入百分比【 1% - 300% 】", 2000);
-									} else {
-										var pct = parseInt(commandPrompts[0]);
-										if (pct != NaN) {
-											var percentage = Math.min(Math.max(pct, 1), 300);
-											ABPInst.video.playbackRate = percentage / 100;
-										}
-										if (ABPInst.cmManager !== null) {
-											ABPInst.cmManager.clear();
-										}
-									}
-								}
-								break;
-							case "off":
-								{
-									ABPInst.cmManager.display = false;
-									ABPInst.cmManager.clear();
-									ABPInst.cmManager.stopTimer();
-								}
-								break;
-							case "on":
-								{
-									ABPInst.cmManager.display = true;
-									ABPInst.cmManager.startTimer();
-								}
-								break;
-							case "cls":
-							case "clear":
-								{
-									if (ABPInst.cmManager !== null) {
-										ABPInst.cmManager.clear();
-									}
-								}
-								break;
-							case "pp":
-							case "pause":
-								{
-									ABPInst.video.pause();
-								}
-								break;
-							case "p":
-							case "play":
-								{
-									ABPInst.video.play();
-								}
-								break;
-							case "vol":
-							case "volume":
-								{
-									if (commandPrompts.length == 0) {
-										var popup = ABPInst.createPopup("目前音量：" +
-											Math.round(ABPInst.video.volume * 100) + "%", 2000);
-									} else {
-										var precVolume = parseInt(commandPrompts[0]);
-										if (precVolume !== null && precVolume !== NaN) {
-											ABPInst.video.volume = Math.max(Math.min(precVolume, 100), 0) / 100;
-										}
-										ABPInst.createPopup("目前音量：" +
-											Math.round(ABPInst.video.volume * 100) + "%", 2000);
-									}
-								}
-								break;
-							default:
-								break;
-						}
-						this.value = "";
-					}
-				} else if (k != null && k.keyCode === 38) {
-					if (!k.shiftKey) {
-						/** Volume up **/
-						ABPInst.video.volume = Math.round(Math.min((ABPInst.video.volume * 100) + 5, 100)) / 100;
-						ABPInst.removePopup();
-						var p = ABPInst.createPopup("目前音量：" +
-							Math.round(ABPInst.video.volume * 100) + "%", 800);
-					} else {
-						if (ABPInst.cmManager !== null) {
-							var opa = Math.min(Math.round(ABPInst.cmManager.options.opacity * 100) + 5, 100);
-							ABPInst.cmManager.options.opacity = opa / 100;
-							ABPInst.removePopup();
-							var p = ABPInst.createPopup("弹幕透明度：" + Math.round(opa) + "%", 800);
-						}
-					}
-				} else if (k != null && k.keyCode === 40) {
-					if (!k.shiftKey) {
-						/** Volume Down **/
-						ABPInst.video.volume = Math.round(Math.max((ABPInst.video.volume * 100) - 5, 0)) / 100;
-						ABPInst.removePopup();
-						var p = ABPInst.createPopup("目前音量：" +
-							Math.round(ABPInst.video.volume * 100) + "%", 800);
-					} else {
-						if (ABPInst.cmManager !== null) {
-							var opa = Math.max(Math.round(ABPInst.cmManager.options.opacity * 100) - 5, 0);
-							ABPInst.cmManager.options.opacity = opa / 100;
-							ABPInst.removePopup();
-							var p = ABPInst.createPopup("弹幕透明度：" + Math.round(opa) + "%", 800);
-						}
-					}
 				}
 			});
 		}
