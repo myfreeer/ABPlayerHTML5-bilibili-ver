@@ -733,6 +733,7 @@ var ABP = {
 						scale = ABPInst.proportionalScale ? actualHeight / 493 * ABPInst.commentScale : ABPInst.commentScale;
 					this.width = actualWidth / scale;
 					this.height = actualHeight / scale;
+					this.options.global.scale = this.width / 680;
 					this.dispatchEvent("resize");
 					for (var a in this.csa) this.csa[a].setBounds(this.width, this.height);
 					this.stage.style.width = this.width + "px";
@@ -774,21 +775,24 @@ var ABP = {
 					} catch (err) {}
 				});
 				video.addEventListener("ratechange", function() {
-					if (ABPInst.cmManager.options.globalScale != null) {
+					if (ABPInst.cmManager.options.global.scale != null) {
 						if (video.playbackRate !== 0) {
-							ABPInst.cmManager.options.globalScale = (1 / video.playbackRate);
+							ABPInst.cmManager.options.global.scale = (1 / video.playbackRate);
 							ABPInst.cmManager.rescale();
 						}
 					}
 				});
 				video.addEventListener("pause", function() {
 					ABPInst.cmManager.stopTimer();
+					ABPInst.cmManager.pauseComment();
 				});
 				video.addEventListener("waiting", function() {
 					ABPInst.cmManager.stopTimer();
+					ABPInst.cmManager.pauseComment();
 				});
 				video.addEventListener("playing", function() {
 					ABPInst.cmManager.startTimer();
+					ABPInst.cmManager.resumeComment();
 				});
 			}
 		}
@@ -966,6 +970,18 @@ var ABP = {
 				ABPInst.btnPlay.click();
 				e.preventDefault();
 			});
+			var hideCursorTimer = null;
+			ABPInst.videoDiv.addEventListener("mousemove", function() {
+				if (hideCursorTimer) {
+					window.clearTimeout(hideCursorTimer);
+				}
+				if (hasClass(ABPInst.videoDiv, "ABP-HideCursor")) {
+					removeClass(ABPInst.videoDiv, "ABP-HideCursor");
+				}
+				hideCursorTimer = window.setTimeout(function() {
+					addClass(ABPInst.videoDiv, "ABP-HideCursor");
+				}, 3000);
+			});
 			ABPInst.btnVolume.addEventListener("click", function() {
 				if (ABPInst.video.muted == false) {
 					ABPInst.video.muted = true;
@@ -1051,6 +1067,7 @@ var ABP = {
 					ABPInst.cmManager.options.scrollScale = 1;
 				}
 			});
+
 			ABPInst.btnWide.addEventListener("click", function() {
 				ABPInst.state.widescreen = hasClass(playerUnit, "ABP-WideScreen");
 				if (!ABPInst.state.widescreen) {
@@ -1130,7 +1147,7 @@ var ABP = {
 						"pool": 0
 					}
 				}));
-				ABPInst.cmManager.sendComment({
+				ABPInst.cmManager.send({
 					"text": ABPInst.txtText.value,
 					"mode": ABPInst.commentMode,
 					"stime": ABPInst.video.currentTime,

@@ -85,7 +85,7 @@
   width:auto !important;
   height:auto !important;
   position:fixed;
-  z-index:9999;
+  z-index:10011;
 }
 
 .ABP-Unit .ABP-Player {
@@ -99,13 +99,17 @@
   width: 100%;
 }
 
-.ABP-Unit .ABP-Video{
+.ABP-Unit .ABP-Video {
   position:absolute;
   overflow:hidden;
   top:0;left:0;right:0;bottom:43px;
   background:#000;
   outline: none;
   cursor: pointer;
+}
+
+.ABP-Unit .ABP-Video.ABP-HideCursor {
+  cursor: none;
 }
 
 .ABP-Unit.ABP-FullScreen .ABP-Video {
@@ -147,7 +151,7 @@
   position: absolute;
   margin-top: 3px;
   color: #fff;
-  font-family: SimHei, SimSun, Heiti, "MS Mincho", "Meiryo", "Microsoft YaHei", monospace;
+  font-family: "Helvetica Neue", Helvetica, "Nimbus Sans L", Arial, "Liberation Sans", "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", "Source Han Sans SC", "Microsoft YaHei", "Wenquanyi Micro Hei", "WenQuanYi Zen Hei", "ST Heiti", SimHei, "WenQuanYi Zen Hei Sharp", sans-serif;
   font-size: 25px;
   font-weight: 600;
   text-decoration: none;
@@ -172,7 +176,7 @@
   display: none;
 }
 .ABP-Unit .ABP-Video .ABP-Container .cmt.rshadow::after {
-  -webkit-text-stroke-color: white;
+  -webkit-text-stroke: 1px white;
 }
 
 .ABP-Unit .ABP-Bottom {
@@ -731,10 +735,10 @@
 }
 
 .ABP-Unit .ABP-Control .time-label {
-  width: 80px;
+  width: 86px;
   font-size: 11px;
   position: absolute;
-  right: 187px;
+  right: 184px;
   text-align: center;
   line-height: 22px;
   height: 20px;
