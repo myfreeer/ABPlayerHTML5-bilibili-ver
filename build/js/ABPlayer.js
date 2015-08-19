@@ -744,12 +744,17 @@ var ABP = {
 				}
 				ABPInst.cmManager.setBounds();
 				ABPInst.cmManager.clear();
+				var lastCheckTime = 0;
 				video.addEventListener("progress", function() {
-					if (lastPosition == video.currentTime) {
+					if (lastPosition == video.currentTime && isPlaying && new Date().getTime() - lastCheckTime >= 100) {
 						video.hasStalled = true;
+						console.log("stalled");
 						ABPInst.cmManager.stopTimer();
-					} else
+						ABPInst.cmManager.pauseComment();
+					} else if (lastPosition != video.currentTime) {
 						lastPosition = video.currentTime;
+					}
+					lastCheckTime = new Date().getTime();
 				});
 				if (window) {
 					window.addEventListener("resize", function() {
@@ -760,6 +765,7 @@ var ABP = {
 					if (ABPInst.cmManager.display === false) return;
 					if (video.hasStalled) {
 						ABPInst.cmManager.startTimer();
+						ABPInst.cmManager.resumeComment();
 						video.hasStalled = false;
 					}
 					ABPInst.cmManager.time(Math.floor(video.currentTime * 1000));
@@ -767,6 +773,7 @@ var ABP = {
 				video.addEventListener("play", function() {
 					ABPInst.cmManager.setBounds();
 					ABPInst.cmManager.startTimer();
+					ABPInst.cmManager.resumeComment();
 					try {
 						var e = this.buffered.end(0);
 						var dur = this.duration;
@@ -782,17 +789,21 @@ var ABP = {
 						}
 					}
 				});
+				var isPlaying = false;
 				video.addEventListener("pause", function() {
 					ABPInst.cmManager.stopTimer();
 					ABPInst.cmManager.pauseComment();
+					isPlaying = false;
 				});
 				video.addEventListener("waiting", function() {
 					ABPInst.cmManager.stopTimer();
 					ABPInst.cmManager.pauseComment();
+					isPlaying = false;
 				});
 				video.addEventListener("playing", function() {
 					ABPInst.cmManager.startTimer();
 					ABPInst.cmManager.resumeComment();
+					isPlaying = true;
 				});
 			}
 		}
@@ -941,7 +952,7 @@ var ABP = {
 		}
 		if (typeof ABP.playerConfig == "object") {
 			if (ABP.playerConfig.volume) ABPInst.video.volume = ABP.playerConfig.volume;
-			if (ABP.playerConfig.opacity) ABPInst.cmManager.options.opacity = ABP.playerConfig.opacity;
+			if (ABP.playerConfig.opacity) ABPInst.cmManager.options.global.opacity = ABP.playerConfig.opacity;
 		}
 		$$('.ABP-Comment-List-Title *').click(function() {
 			var item = $$(this).attr('item'),
@@ -1123,7 +1134,7 @@ var ABP = {
 				ABPInst.playerUnit.dispatchEvent(new CustomEvent("saveconfig", {
 					"detail": {
 						"volume": ABPInst.video.volume,
-						"opacity": ABPInst.cmManager.options.opacity,
+						"opacity": ABPInst.cmManager.options.global.opacity,
 						"scale": ABPInst.commentScale,
 						"prop": ABPInst.proportionalScale
 					}
@@ -1277,7 +1288,7 @@ var ABP = {
 			ABPInst.barOpacityHitArea.addEventListener("mousedown", function(e) {
 				draggingOpacity = true;
 			});
-			ABPInst.barOpacity.style.width = (ABPInst.cmManager.options.opacity * 100) + "%";
+			ABPInst.barOpacity.style.width = (ABPInst.cmManager.options.global.opacity * 100) + "%";
 			var updateOpacity = function(opacity) {
 				ABPInst.barOpacity.style.width = (opacity * 100) + "%";
 				ABPInst.barOpacityHitArea.tooltip(parseInt(opacity * 100) + "%");
@@ -1288,8 +1299,8 @@ var ABP = {
 					var newOpacity = (e.clientX - ABPInst.barOpacityHitArea.getBoundingClientRect().left) / ABPInst.barOpacityHitArea.offsetWidth;
 					if (newOpacity < 0) newOpacity = 0;
 					if (newOpacity > 1) newOpacity = 1;
-					ABPInst.cmManager.options.opacity = newOpacity;
-					updateOpacity(ABPInst.cmManager.options.opacity);
+					ABPInst.cmManager.options.global.opacity = newOpacity;
+					updateOpacity(ABPInst.cmManager.options.global.opacity);
 				}
 				draggingOpacity = false;
 			});
@@ -1298,8 +1309,8 @@ var ABP = {
 				if (newOpacity < 0) newOpacity = 0;
 				if (newOpacity > 1) newOpacity = 1;
 				if (draggingOpacity) {
-					ABPInst.cmManager.options.opacity = newOpacity;
-					updateOpacity(ABPInst.cmManager.options.opacity);
+					ABPInst.cmManager.options.global.opacity = newOpacity;
+					updateOpacity(ABPInst.cmManager.options.global.opacity);
 				} else {
 					ABPInst.barOpacityHitArea.tooltip(parseInt(newOpacity * 100) + "%");
 				}
