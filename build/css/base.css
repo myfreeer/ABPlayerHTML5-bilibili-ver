@@ -821,13 +821,13 @@
 .ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title *.asc::after {
   position: absolute;
   right: 0;
-  content: "▲";
+  content: "\25b2";
 }
 
 .ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title *.desc::after {
   position: absolute;
   right: 0;
-  content: "▼";
+  content: "\25bc";
 }
 
 .ABP-Unit .ABP-Comment-List .ABP-Comment-List-Title .cmt-time {
