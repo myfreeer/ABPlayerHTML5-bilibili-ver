@@ -748,7 +748,6 @@ var ABP = {
 				video.addEventListener("progress", function() {
 					if (lastPosition == video.currentTime && isPlaying && new Date().getTime() - lastCheckTime >= 100) {
 						video.hasStalled = true;
-						console.log("stalled");
 						ABPInst.cmManager.stopTimer();
 						ABPInst.cmManager.pauseComment();
 					} else if (lastPosition != video.currentTime) {
