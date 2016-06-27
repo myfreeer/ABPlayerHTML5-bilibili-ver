@@ -26,9 +26,9 @@ function CommentLoader(url, xcm, callback) {
                 cm.load(BilibiliParser(f));
                 callback();
             } else {
-                var parsedXML = xmlhttp.responseXML == null ? (new window.DOMParser()).parseFromString(xmlhttp.responseText, "text/xml") : xmlhttp.responseXML;
-                cm.load(BilibiliParser(parsedXML));
-                //console.log(xmlhttp);
+                var standarizedXML = xmlhttp.responseXML == null ? (new window.DOMParser()).parseFromString(xmlhttp.responseText, "text/xml") : xmlhttp.responseXML;
+                cm.load(BilibiliParser(standarizedXML));
+                //console.log(standarizedXML);
                 callback();
             }
         }
