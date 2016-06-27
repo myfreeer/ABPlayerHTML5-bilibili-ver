@@ -25,7 +25,9 @@ function CommentLoader(url,xcm,callback){
 				cm.load(BilibiliParser(f));
 				callback();
 			}else{
-				cm.load(BilibiliParser(xmlhttp.responseXML));
+				var fffff=xmlhttp.responseXML==null?( new window.DOMParser() ).parseFromString(xmlhttp.responseText, "text/xml"):xmlhttp.responseXML;
+				cm.load(BilibiliParser(fffff));
+				//console.log(xmlhttp);
 				callback();
 			}
 		}
