@@ -725,8 +725,10 @@ var ABP = {
 				ABPInst.cmManager.setBounds = function() {
 					if (playerUnit.offsetHeight <= 300 || playerUnit.offsetWidth <= 700) {
 						addClass(playerUnit, "ABP-Mini");
+						ABPInst.proportionalScale = true;
 					} else {
 						removeClass(playerUnit, "ABP-Mini");
+						ABPInst.proportionalScale = ABPInst.btnProp.classList.contains("on");
 					}
 					var actualWidth = ABPInst.videoDiv.offsetWidth,
 						actualHeight = ABPInst.videoDiv.offsetHeight,
